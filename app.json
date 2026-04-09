@@ -1,0 +1,61 @@
+{
+  "expo": {
+    "name": "Silk Value",
+    "slug": "silk-value-platform",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "silkvalue",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#2D6A4F"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.silkvalue.platform",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Silk Value needs location access to geo-tag collection events.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Silk Value needs location access to geo-tag collection events.",
+        "NSCameraUsageDescription": "Silk Value needs camera access to photograph collection evidence."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#2D6A4F"
+      },
+      "package": "com.silkvalue.platform",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-camera",
+        { "cameraPermission": "Allow Silk Value to access your camera." }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Silk Value to use your location."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

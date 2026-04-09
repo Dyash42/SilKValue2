@@ -1,0 +1,142 @@
+import { appSchema, tableSchema } from '@nozbe/watermelondb';
+
+export const SCHEMA_VERSION = 1;
+
+export const watermelonSchema = appSchema({
+  version: SCHEMA_VERSION,
+  tables: [
+    tableSchema({
+      name: 'profiles',
+      columns: [
+        { name: 'user_id', type: 'string' },
+        { name: 'phone', type: 'string' },
+        { name: 'full_name', type: 'string' },
+        { name: 'role', type: 'string' },
+        { name: 'cluster_id', type: 'string', isOptional: true },
+        { name: 'is_verified', type: 'boolean' },
+        { name: 'kyc_status', type: 'string' },
+        { name: 'preferred_language', type: 'string', isOptional: true },
+        { name: 'employee_id', type: 'string', isOptional: true },
+        { name: 'last_active_at', type: 'number', isOptional: true },
+        { name: 'server_updated_at', type: 'number', isOptional: true },
+      ],
+    }),
+
+    tableSchema({
+      name: 'clusters',
+      columns: [
+        { name: 'name', type: 'string' },
+        { name: 'code', type: 'string', isOptional: true },
+        { name: 'district', type: 'string', isOptional: true },
+        { name: 'region', type: 'string', isOptional: true },
+        { name: 'state', type: 'string' },
+        { name: 'country', type: 'string', isOptional: true },
+        { name: 'is_active', type: 'boolean' },
+        { name: 'variance_tolerance_percent', type: 'number', isOptional: true },
+        { name: 'server_updated_at', type: 'number', isOptional: true },
+      ],
+    }),
+
+    tableSchema({
+      name: 'reelers',
+      columns: [
+        { name: 'profile_id', type: 'string' },
+        { name: 'phone', type: 'string' },
+        { name: 'full_name', type: 'string' },
+        { name: 'cluster_id', type: 'string', isOptional: true },
+        { name: 'bank_account_masked', type: 'string', isOptional: true },
+        { name: 'ifsc_code', type: 'string', isOptional: true },
+        { name: 'upi_id', type: 'string', isOptional: true },
+        { name: 'payment_preference', type: 'string' },
+        { name: 'total_collections', type: 'number' },
+        { name: 'total_earnings_inr', type: 'number' },
+        { name: 'qr_code_hash', type: 'string', isOptional: true },
+        { name: 'consent_captured_at', type: 'number', isOptional: true },
+        { name: 'farm_area_hectares', type: 'number', isOptional: true },
+        { name: 'server_updated_at', type: 'number', isOptional: true },
+      ],
+    }),
+
+    tableSchema({
+      name: 'routes',
+      columns: [
+        { name: 'name', type: 'string' },
+        { name: 'date', type: 'number' },
+        { name: 'cluster_id', type: 'string' },
+        { name: 'vehicle_id', type: 'string', isOptional: true },
+        { name: 'collector_id', type: 'string' },
+        { name: 'supervisor_id', type: 'string', isOptional: true },
+        { name: 'status', type: 'string' },
+        { name: 'total_stops', type: 'number' },
+        { name: 'completed_stops', type: 'number' },
+        { name: 'expected_total_weight_kg', type: 'number', isOptional: true },
+        { name: 'actual_total_weight_kg', type: 'number', isOptional: true },
+        { name: 'server_updated_at', type: 'number', isOptional: true },
+      ],
+    }),
+
+    tableSchema({
+      name: 'route_stops',
+      columns: [
+        { name: 'route_id', type: 'string' },
+        { name: 'reeler_id', type: 'string' },
+        { name: 'stop_order', type: 'number' },
+        { name: 'status', type: 'string' },
+        { name: 'expected_weight_kg', type: 'number', isOptional: true },
+        { name: 'actual_arrival_time', type: 'number', isOptional: true },
+        { name: 'collection_ticket_id', type: 'string', isOptional: true },
+        { name: 'skip_reason', type: 'string', isOptional: true },
+        { name: 'collector_notes', type: 'string', isOptional: true },
+        { name: 'server_updated_at', type: 'number', isOptional: true },
+      ],
+    }),
+
+    tableSchema({
+      name: 'collection_tickets',
+      columns: [
+        { name: 'ticket_number', type: 'string' },
+        { name: 'route_stop_id', type: 'string', isOptional: true },
+        { name: 'collector_id', type: 'string' },
+        { name: 'reeler_id', type: 'string' },
+        { name: 'route_id', type: 'string', isOptional: true },
+        { name: 'gross_weight_kg', type: 'number' },
+        { name: 'tare_weight_kg', type: 'number' },
+        { name: 'net_weight_kg', type: 'number' },
+        { name: 'quality_grade', type: 'string' },
+        { name: 'moisture_percent', type: 'number', isOptional: true },
+        { name: 'visual_notes', type: 'string', isOptional: true },
+        { name: 'crate_count', type: 'number' },
+        { name: 'price_list_id', type: 'string', isOptional: true },
+        { name: 'price_per_kg', type: 'number' },
+        { name: 'total_amount', type: 'number' },
+        { name: 'pricing_snapshot', type: 'string' },
+        { name: 'collection_timestamp', type: 'number' },
+        { name: 'gps_latitude', type: 'number', isOptional: true },
+        { name: 'gps_longitude', type: 'number', isOptional: true },
+        { name: 'gps_accuracy_meters', type: 'number', isOptional: true },
+        { name: 'device_id', type: 'string', isOptional: true },
+        { name: 'network_status', type: 'string', isOptional: true },
+        { name: 'sync_status', type: 'string' },
+        { name: 'status', type: 'string' },
+        { name: 'idempotency_key', type: 'string' },
+        { name: 'photos', type: 'string', isOptional: true },
+        { name: 'server_updated_at', type: 'number', isOptional: true },
+      ],
+    }),
+
+    tableSchema({
+      name: 'payments',
+      columns: [
+        { name: 'collection_ticket_id', type: 'string', isOptional: true },
+        { name: 'reeler_id', type: 'string' },
+        { name: 'amount', type: 'number' },
+        { name: 'payment_mode', type: 'string' },
+        { name: 'payment_status', type: 'string' },
+        { name: 'gateway_provider', type: 'string', isOptional: true },
+        { name: 'transaction_reference', type: 'string', isOptional: true },
+        { name: 'initiated_at', type: 'number' },
+        { name: 'server_updated_at', type: 'number', isOptional: true },
+      ],
+    }),
+  ],
+});

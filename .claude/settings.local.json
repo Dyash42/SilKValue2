@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx supabase:*)",
+      "Bash(node -e \"const fs=require\\('fs'\\); const d=JSON.parse\\(fs.readFileSync\\('/dev/stdin','utf8'\\)\\); const deps={...d.dependencies,...d.devDependencies}; Object.entries\\(deps\\).filter\\(\\([k]\\)=>['supabase','watermelon','nozbe'].some\\(x=>k.includes\\(x\\)\\)\\).forEach\\(\\([k,v]\\)=>console.log\\(k,v\\)\\)\")",
+      "Bash(xargs grep:*)",
+      "Bash(mkdir -p \"C:/1D/BKR/SilK/SilkValueDebugged/assets\")"
+    ]
+  }
+}
