@@ -4,12 +4,12 @@ module.exports = function (api) {
     presets: ['babel-preset-expo'],
     plugins: [
       // Path aliases — must match tsconfig paths
+      // IMPORTANT: more-specific prefixes must come before '@' to avoid '@' eating them first
       [
         'module-resolver',
         {
           root: ['.'],
           alias: {
-            '@': './src',
             '@/components': './components',
             '@/app': './app',
             '@/constants': './src/constants',
@@ -20,6 +20,7 @@ module.exports = function (api) {
             '@/stores': './src/stores',
             '@/types': './src/types',
             '@/utils': './src/utils',
+            '@': './src',
           },
         },
       ],

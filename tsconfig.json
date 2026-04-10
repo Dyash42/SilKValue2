@@ -4,6 +4,9 @@
     "strict": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
+    "experimentalDecorators": true,
+    "lib": ["DOM", "ESNext"],
+    "target": "ESNext",
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "esModuleInterop": true,
@@ -13,7 +16,6 @@
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
       "@/components/*": ["components/*"],
       "@/app/*": ["app/*"],
       "@/constants/*": ["src/constants/*"],
@@ -23,7 +25,8 @@
       "@/services/*": ["src/services/*"],
       "@/stores/*": ["src/stores/*"],
       "@/types/*": ["src/types/*"],
-      "@/utils/*": ["src/utils/*"]
+      "@/utils/*": ["src/utils/*"],
+      "@/*": ["src/*"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],

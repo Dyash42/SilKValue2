@@ -32,7 +32,7 @@ export function useCollectionTicket() {
       .query(Q.where('sync_status', Q.notEq('synced')))
       .observe()
       .subscribe({
-        next: (tickets) => setPendingTickets(tickets),
+        next: (tickets: CollectionTicketModel[]) => setPendingTickets(tickets),
         error: (err: unknown) => {
           const msg = err instanceof Error ? err.message : String(err);
           console.error('[useCollectionTicket] Pending tickets query error:', msg);

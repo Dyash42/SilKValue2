@@ -17,15 +17,17 @@ export default function RootLayout() {
         setSession(session);
         setUser(session.user);
 
-        supabase
+        void supabase
           .from('profiles')
           .select('*')
-          .eq('id', session.user.id)
+          .eq('user_id', session.user.id)
           .single()
           .then(({ data }) => {
             if (data) setProfile(data);
-          })
-          .finally(() => setLoading(false));
+            setLoading(false);
+          }, () => {
+            setLoading(false);
+          });
       } else {
         setLoading(false);
       }
@@ -38,15 +40,17 @@ export default function RootLayout() {
       if (session) {
         setSession(session);
         setUser(session.user);
-        supabase
+        void supabase
           .from('profiles')
           .select('*')
-          .eq('id', session.user.id)
+          .eq('user_id', session.user.id)
           .single()
           .then(({ data }) => {
             if (data) setProfile(data);
-          })
-          .finally(() => setLoading(false));
+            setLoading(false);
+          }, () => {
+            setLoading(false);
+          });
       } else {
         setSession(null);
         setUser(null);

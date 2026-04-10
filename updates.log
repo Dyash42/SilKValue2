@@ -1,0 +1,155 @@
+================================================================================
+SILK VALUE PLATFORM — BUILD PROGRESS LOG
+================================================================================
+Project: C:\1D\BKR\SilK\SilkValueDebugged
+Stack:   Expo 51 · React Native · TypeScript · Supabase (PostgreSQL) · WatermelonDB · Zustand
+Apps:    Reeler (farmer) · Collector (field agent) · Factory Gate (gate operator)
+
+--------------------------------------------------------------------------------
+SESSION 1 — Initial Setup & SQL Audit (prior session)
+--------------------------------------------------------------------------------
+[DONE] SQL migration audit against PRD — 8 RLS policy failures found & fixed
+[DONE] Generated column bug fixed: within_tolerance references variance_percent
+       (inlined formula to avoid PostgreSQL generated-col-referencing-generated-col error)
+[DONE] .env created with Supabase credentials (Singapore region: aws-0-ap-southeast-1)
+[DONE] drop_all.sql written (drops 17 tables, 4 functions, 12 enums CASCADE)
+[DONE] migration_v2_2_final.sql pushed to Supabase via CLI (582 lines, 17 tables, 39 RLS policies)
+[DONE] Database is LIVE on Supabase project vjxuqkstltkbflhhwgoe
+
+--------------------------------------------------------------------------------
+SESSION 2 — Core Backend: Types, Config, Supabase, WatermelonDB, Sync Engine
+--------------------------------------------------------------------------------
+[DONE] package.json — all dependencies (WatermelonDB, Supabase, Expo, Zustand, uuid, NetInfo)
+[DONE] tsconfig.json — strict TS, path aliases (@/ → src/)
+[DONE] babel.config.js — decorators (legacy), module-resolver, reanimated
+[DONE] metro.config.js — .cjs sourceExts for WatermelonDB
+[DONE] app.json — Expo config with iOS/Android permissions, expo-router
+[DONE] expo-env.d.ts — Expo typed routes reference
+
+[DONE] src/types/index.ts — all Row types, 12 enum types, AppUser, AuthState, SyncState, etc.
+[DONE] src/database.ts — full Supabase Database type (auto-generated, 17 tables)
+[DONE] src/constants/config.ts — Config: supabase, sync, ticket, offline settings
+[DONE] src/constants/colors.ts — brand palette + per-app accent colors
+
+[DONE] src/lib/supabase/client.ts — singleton SupabaseClient + ExpoSecureStoreAdapter
+[DONE] src/lib/supabase/auth.ts — signInWithPhone, verifyOtp, signInWithEmail, signOut, etc.
+
+[DONE] src/lib/watermelon/schema.ts — appSchema v1, 7 tables
+[DONE] src/lib/watermelon/migrations.ts — schemaMigrations stub
+[DONE] src/lib/watermelon/database.ts — SQLiteAdapter + Database singleton
+
+[DONE] src/models/ClusterModel.ts
+[DONE] src/models/ProfileModel.ts
+[DONE] src/models/ReelerModel.ts
+[DONE] src/models/RouteModel.ts
+[DONE] src/models/RouteStopModel.ts
+[DONE] src/models/CollectionTicketModel.ts — with parsedPricingSnapshot, parsedPhotos getters
+[DONE] src/models/PaymentModel.ts
+[DONE] src/models/index.ts
+
+[DONE] src/lib/sync/pullChanges.ts — parallel pull, field mapping, RLS error handling
+[DONE] src/lib/sync/pushChanges.ts — FK-safe order, upsert with idempotency_key
+[DONE] src/lib/sync/conflictResolver.ts — server-wins/client-wins/LWW per table
+[DONE] src/lib/sync/engine.ts — mutex, exponential backoff, background sync, EventEmitter
+
+--------------------------------------------------------------------------------
+SESSION 3 — Services, Hooks, Stores, Utils, Auth Screens
+--------------------------------------------------------------------------------
+[DONE] src/services/auth.service.ts — signIn, verifyOtp, fetchProfile, updateProfile, signOut
+[DONE] src/services/collection.service.ts — createTicket, submitTicket, queries, fetchPriceList
+[DONE] src/services/payment.service.ts — createPayment, ledger queries, earnings aggregation
+[DONE] src/services/gate.service.ts — createGateEntry, updateQcDecision, requestOverride, etc.
+[DONE] src/services/route.service.ts — getActiveRoutes, markStopVisited, fetchFromServer
+
+[DONE] src/stores/auth.store.ts — Zustand auth store (user, session, profile, role)
+[DONE] src/stores/sync.store.ts — Zustand sync store (isSyncing, pendingCount, errors)
+
+[DONE] src/hooks/useAuth.ts — auth state + onAuthStateChange subscription
+[DONE] src/hooks/useSync.ts — sync state + manual trigger
+[DONE] src/hooks/useNetwork.ts — NetInfo connectivity + auto-sync on reconnect
+[DONE] src/hooks/useCollectionTicket.ts — ticket CRUD + live WatermelonDB query
+[DONE] src/hooks/useRoute.ts — routes + stops live queries + progress
+
+[DONE] src/utils/format.ts — formatCurrency, formatWeight, formatDate, formatDateTime, etc.
+[DONE] src/utils/idempotency.ts — generateTicketKey, generatePaymentKey, isValid
+[DONE] src/utils/validation.ts — validatePhone, validateWeight, validateOtp, etc.
+
+[DONE] app/_layout.tsx — Root layout: DB init, auth listener, background sync (BUG FIXED: user_id)
+[DONE] app/index.tsx — Role-based redirect
+[DONE] app/(auth)/_layout.tsx — Auth stack layout
+[DONE] app/(auth)/login.tsx — Phone/email login
+[DONE] app/(auth)/otp.tsx — OTP verification
+
+[DONE] components/shared/Button.tsx
+[DONE] components/shared/Input.tsx
+[DONE] components/shared/Card.tsx
+[DONE] components/shared/LoadingSpinner.tsx
+
+--------------------------------------------------------------------------------
+SESSION 4 — App Screens + Remaining Components (CURRENT SESSION)
+--------------------------------------------------------------------------------
+[DONE] Fixed profile query bug: eq('id') → eq('user_id') in _layout.tsx + useAuth.ts
+[DONE] src/utils/encryption.ts — SecureStore wrappers (storeSecurely, retrieveSecurely, storePinHash, verifyPin, storeDeviceId)
+[DESIGN OVERRIDE] User uploaded 4 reference screens — full black/white theme enforced:
+  Design system: BG=#FFFFFF, Text=#111111, Secondary=#666666, Buttons=black fill or black outline
+  Accent colors ONLY for status: Green=#22C55E (done/verified), Red=#EF4444 (late/negative), Amber=#F59E0B (warning)
+  Tab bars: white bg, black active, grey inactive
+  Cards: white bg, #E5E5E5 border, radius 8
+  Progress bars: black fill on #E5E5E5 track
+[DONE] All 29 screens + components written (black/white reference design)
+[DONE] TypeScript errors fixed:
+  - tsconfig.json: added experimentalDecorators, lib, target
+  - database.ts: import { Database } from '@nozbe/watermelondb'
+  - CollectionTicketModel: renamed syncStatus → localSyncStatus (avoids WDB base class conflict)
+  - pullChanges.ts: lastPulledAt accepts number | null | undefined
+  - pushChanges.ts: upsert + sync_logs cast to any
+  - _layout.tsx: .finally → .then(ok, err) pattern
+  - useCollectionTicket.ts + useRoute.ts: explicit type annotations
+  - useRoute.ts: Q.sortBy moved outside Q.and()
+  - QCDecisionPanel: fixed comparison keys (accepted/partial_rejection/rejected)
+  - StatCard: replaced dynamic Container with explicit conditional render
+  - StopItem: removed unreachable default branch on exhaustive union
+[DONE] Additional screens created:
+  - app/(reeler)/collection-detail.tsx — ticket detail (matches reference design Pattern D)
+  - app/(reeler)/payments.tsx — payment history list
+  - app/(collector)/map.tsx — map placeholder (Phase 2)
+  - app/(collector)/settings.tsx — settings + sign out
+  - app/(gate)/history.tsx — gate entry history
+  - app/(gate)/reports.tsx — today/week stats
+  - app/(gate)/settings.tsx — gate settings
+[DONE] Navigation wired:
+  - app/index.tsx: role-based redirect (reeler/collector/supervisor/qc_operator/admin/finance)
+  - (reeler) layout: HOME, COLLECTIONS, PAYMENTS, PROFILE tabs
+  - (collector) layout: HOME, MAP, COLLECTIONS tabs + hidden routes
+  - (gate) layout: DASHBOARD, CHECK-IN (weighment), HISTORY, REPORTS, SETTINGS tabs
+[DONE] TypeScript compilation: 0 errors ✓
+[DONE] npm install: 1222 packages, up to date ✓
+
+================================================================================
+PROJECT STATUS: BACKEND + ALL THREE APPS COMPLETE
+================================================================================
+Reeler App    ✓  dashboard, collections, collection-detail, payments, profile
+Collector App ✓  dashboard, routes (list + detail), new ticket form, map, settings
+Gate App      ✓  dashboard, new weighment, QC review, history, reports, settings
+Backend       ✓  Supabase DB live, WatermelonDB sync engine, all services + hooks
+================================================================================
+NEXT STEPS (Phase 2):
+  - Real map integration (react-native-maps + route display)
+  - Push notifications (Expo notifications)
+  - Camera photo capture in ticket form
+  - Offline-first conflict resolution tuning
+  - Admin web dashboard
+================================================================================
+
+================================================================================
+SESSION 4 — Bundle Error Fixes (Android + Web)
+================================================================================
+[DONE] babel.config.js: moved @/components alias BEFORE @/* to fix Metro
+       resolution error (@/components/* was resolving to src/components/*)
+[DONE] tsconfig.json: reordered paths — specific aliases before @/*
+[DONE] src/lib/sync/engine.ts: replaced Node's EventEmitter (Node built-in)
+       with inline SimpleEventEmitter class (React Native safe, zero deps)
+[DONE] assets/: generated valid PNG files (icon.png, splash.png,
+       adaptive-icon.png, favicon.png) — fixes "Unable to resolve asset" error
+RESUME POINT: Run Expo (npx expo start) — bundle should compile cleanly
+================================================================================

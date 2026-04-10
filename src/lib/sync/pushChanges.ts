@@ -288,14 +288,14 @@ function logSyncEvent(
   // Intentionally not awaited
   supabase
     .from('sync_logs')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .insert({
-      table_name: tableName,
-      operation,
-      record_id: recordId,
+      synced_at: new Date().toISOString(),
       success,
       error_message: errorMessage ?? null,
-      synced_at: new Date().toISOString(),
-    })
+      record_id: recordId,
+      operation_type: operation,
+    } as any)
     .then(({ error }) => {
       if (error) {
         console.warn('[pushChanges] Failed to write sync log:', error.message);
@@ -339,7 +339,8 @@ async function upsertRecords(
       await withRetry(async () => {
         const { error } = await supabase
           .from(tableName)
-          .upsert(dbRow, { onConflict, ignoreDuplicates: false });
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .upsert(dbRow as any, { onConflict, ignoreDuplicates: false });
 
         if (error) {
           if (isAuthError(error.code, (error as { status?: number }).status)) {
@@ -399,7 +400,8 @@ async function deleteRecords(
           // Soft delete: set deleted_at timestamp
           const { error: e } = await supabase
             .from(tableName)
-            .update({ deleted_at: new Date().toISOString() })
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .update({ deleted_at: new Date().toISOString() } as any)
             .eq('id', id);
           error = e;
         } else {

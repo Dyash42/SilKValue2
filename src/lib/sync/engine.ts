@@ -14,13 +14,53 @@
 
 import { synchronize } from '@nozbe/watermelondb/sync';
 import { Q } from '@nozbe/watermelondb';
-import { EventEmitter } from 'events';
 
 import { database } from '../watermelon/database';
 import { pullChanges } from './pullChanges';
 import { pushChanges } from './pushChanges';
 import { Config } from '../../constants/config';
 import { SCHEMA_VERSION } from '../watermelon/schema';
+
+// ---------------------------------------------------------------------------
+// Lightweight EventEmitter — React Native safe (no Node built-ins)
+// ---------------------------------------------------------------------------
+
+type Listener = (...args: unknown[]) => void;
+
+class SimpleEventEmitter {
+  private _listeners: Map<string, Listener[]> = new Map();
+  private _maxListeners = 10;
+
+  setMaxListeners(n: number): void { this._maxListeners = n; }
+
+  on(event: string, listener: Listener): this {
+    const arr = this._listeners.get(event) ?? [];
+    arr.push(listener);
+    this._listeners.set(event, arr);
+    return this;
+  }
+
+  off(event: string, listener: Listener): this {
+    const arr = this._listeners.get(event);
+    if (arr) {
+      this._listeners.set(event, arr.filter(l => l !== listener));
+    }
+    return this;
+  }
+
+  emit(event: string, ...args: unknown[]): boolean {
+    const arr = this._listeners.get(event);
+    if (!arr || arr.length === 0) return false;
+    arr.slice().forEach(l => l(...args));
+    return true;
+  }
+
+  removeAllListeners(event?: string): this {
+    if (event) this._listeners.delete(event);
+    else this._listeners.clear();
+    return this;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -53,7 +93,7 @@ export interface SyncProgressEvent {
 // ---------------------------------------------------------------------------
 
 /** Singleton EventEmitter for sync progress events. */
-export const syncEvents = new EventEmitter();
+export const syncEvents = new SimpleEventEmitter();
 syncEvents.setMaxListeners(20);
 
 /** Mutex: prevents concurrent syncs. */

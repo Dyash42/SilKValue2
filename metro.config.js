@@ -3,10 +3,7 @@ const { getDefaultConfig } = require('expo/metro-config');
 /** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname);
 
-// WatermelonDB requires this resolver tweak
-config.resolver.sourceExts.push('cjs');
-
-// Ensure flow-typed files are handled
-config.resolver.sourceExts = [...config.resolver.sourceExts, 'mjs'];
+// WatermelonDB requires cjs + mjs support
+config.resolver.sourceExts = [...config.resolver.sourceExts, 'cjs', 'mjs'];
 
 module.exports = config;

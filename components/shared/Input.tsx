@@ -1,12 +1,22 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
   StyleSheet,
   KeyboardTypeOptions,
+  ViewStyle,
 } from 'react-native';
+
+// Design system colors
+const BG = '#FFFFFF';
+const SURFACE_ALT = '#F5F5F5';
+const BORDER = '#E5E5E5';
+const TEXT_PRIMARY = '#111111';
+const TEXT_SECONDARY = '#666666';
+const TEXT_MUTED = '#999999';
+const RED = '#EF4444';
+const FOCUSED_BORDER = '#111111';
 
 interface InputProps {
   label?: string;
@@ -14,193 +24,116 @@ interface InputProps {
   onChangeText: (text: string) => void;
   placeholder?: string;
   error?: string;
-  hint?: string;
-  secureTextEntry?: boolean;
   keyboardType?: KeyboardTypeOptions;
+  secureTextEntry?: boolean;
   multiline?: boolean;
-  numberOfLines?: number;
   disabled?: boolean;
-  required?: boolean;
-  leftIcon?: string;   // emoji
-  rightIcon?: string;  // emoji
-  onRightIconPress?: () => void;
-  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  rightElement?: React.ReactNode;
+  style?: ViewStyle;
 }
 
-const Input: React.FC<InputProps> = ({
+export default function Input({
   label,
   value,
   onChangeText,
   placeholder,
   error,
-  hint,
-  secureTextEntry = false,
   keyboardType = 'default',
+  secureTextEntry = false,
   multiline = false,
-  numberOfLines = 1,
   disabled = false,
-  required = false,
-  leftIcon,
-  rightIcon,
-  onRightIconPress,
-  autoCapitalize = 'sentences',
-}) => {
+  rightElement,
+  style,
+}: InputProps) {
   const [focused, setFocused] = useState(false);
-  const inputRef = useRef<TextInput>(null);
 
-  const borderColor = error
-    ? '#EF4444'
-    : focused
-    ? '#2D6A4F'
-    : '#E5E7EB';
-
-  const inputHeight = multiline && numberOfLines > 1 ? numberOfLines * 22 + 20 : undefined;
+  const borderColor = error ? RED : focused ? FOCUSED_BORDER : BORDER;
 
   return (
-    <View style={styles.container}>
-      {label && (
-        <View style={styles.labelRow}>
-          <Text style={styles.label}>{label}</Text>
-          {required && <Text style={styles.required}> *</Text>}
-        </View>
-      )}
-
+    <View style={[styles.container, style]}>
+      {label ? (
+        <Text style={styles.label}>{label.toUpperCase()}</Text>
+      ) : null}
       <View
         style={[
           styles.inputWrapper,
           { borderColor },
-          focused && styles.focused,
-          disabled && styles.disabledWrapper,
+          disabled ? styles.disabledWrapper : null,
         ]}
       >
-        {leftIcon && (
-          <Text style={styles.leftIcon} accessible={false}>
-            {leftIcon}
-          </Text>
-        )}
-
         <TextInput
-          ref={inputRef}
           style={[
             styles.input,
-            leftIcon && styles.inputWithLeft,
-            rightIcon && styles.inputWithRight,
-            multiline && { height: inputHeight, textAlignVertical: 'top' },
-            disabled && styles.inputDisabled,
+            multiline ? styles.multiline : null,
+            disabled ? styles.inputDisabled : null,
           ]}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor="#9CA3AF"
-          secureTextEntry={secureTextEntry}
+          placeholderTextColor={TEXT_MUTED}
           keyboardType={keyboardType}
+          secureTextEntry={secureTextEntry}
           multiline={multiline}
-          numberOfLines={multiline ? numberOfLines : 1}
           editable={!disabled}
-          autoCapitalize={autoCapitalize}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           accessibilityLabel={label}
         />
-
-        {rightIcon && (
-          <TouchableOpacity
-            onPress={onRightIconPress}
-            disabled={!onRightIconPress}
-            style={styles.rightIconTouch}
-            accessibilityRole={onRightIconPress ? 'button' : 'none'}
-          >
-            <Text style={styles.rightIcon}>{rightIcon}</Text>
-          </TouchableOpacity>
-        )}
+        {rightElement ? (
+          <View style={styles.rightElement}>{rightElement}</View>
+        ) : null}
       </View>
-
       {error ? (
-        <Text style={styles.errorText} accessibilityRole="alert">
-          {error}
-        </Text>
-      ) : hint ? (
-        <Text style={styles.hintText}>{hint}</Text>
+        <Text style={styles.errorText}>{error}</Text>
       ) : null}
     </View>
   );
-};
-
-export default Input;
+}
 
 const styles = StyleSheet.create({
   container: {
     marginBottom: 16,
   },
-  labelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
   label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1A1A1A',
-  },
-  required: {
-    fontSize: 14,
-    color: '#EF4444',
+    fontSize: 11,
     fontWeight: '600',
+    color: TEXT_SECONDARY,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 6,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderRadius: 10,
+    backgroundColor: BG,
+    borderWidth: 1,
+    borderRadius: 6,
     overflow: 'hidden',
   },
-  focused: {
-    // borderColor handled inline
-  },
   disabledWrapper: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: SURFACE_ALT,
   },
   input: {
     flex: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
     fontSize: 15,
-    color: '#1A1A1A',
+    color: TEXT_PRIMARY,
   },
-  inputWithLeft: {
-    paddingLeft: 6,
-  },
-  inputWithRight: {
-    paddingRight: 6,
+  multiline: {
+    minHeight: 88,
+    textAlignVertical: 'top',
   },
   inputDisabled: {
-    color: '#6B7280',
+    color: TEXT_SECONDARY,
   },
-  leftIcon: {
-    fontSize: 18,
-    paddingLeft: 12,
-    paddingRight: 4,
-  },
-  rightIconTouch: {
-    paddingHorizontal: 12,
-    paddingVertical: 11,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  rightIcon: {
-    fontSize: 18,
+  rightElement: {
+    paddingRight: 12,
   },
   errorText: {
     fontSize: 12,
-    color: '#EF4444',
-    marginTop: 5,
-    marginLeft: 2,
-  },
-  hintText: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 5,
+    color: RED,
+    marginTop: 4,
     marginLeft: 2,
   },
 });

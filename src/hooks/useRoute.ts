@@ -52,7 +52,7 @@ export function useRoute() {
       )
       .observe()
       .subscribe({
-        next: (liveRoutes) => {
+        next: (liveRoutes: RouteModel[]) => {
           setRoutes(liveRoutes);
           setIsLoading(false);
         },
@@ -85,7 +85,7 @@ export function useRoute() {
       .query(Q.where('id', currentRouteId))
       .observe()
       .subscribe({
-        next: (results) => setCurrentRoute(results[0] ?? null),
+        next: (results: RouteModel[]) => setCurrentRoute(results[0] ?? null),
         error: (err: unknown) => {
           console.error('[useRoute] Current route query error:', err);
         },
@@ -94,14 +94,12 @@ export function useRoute() {
     // Observe stops ordered by stop_order
     const stopsSubscription: Subscription = stopsCollection
       .query(
-        Q.and(
-          Q.where('route_id', currentRouteId),
-          Q.sortBy('stop_order', Q.asc),
-        ),
+        Q.where('route_id', currentRouteId),
+        Q.sortBy('stop_order', Q.asc),
       )
       .observe()
       .subscribe({
-        next: (liveStops) => setStops(liveStops),
+        next: (liveStops: RouteStopModel[]) => setStops(liveStops),
         error: (err: unknown) => {
           console.error('[useRoute] Stops query error:', err);
         },

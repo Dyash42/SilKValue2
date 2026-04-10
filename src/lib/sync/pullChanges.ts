@@ -311,7 +311,8 @@ async function pullTable(
 export async function pullChanges({
   lastPulledAt,
 }: {
-  lastPulledAt: number | null;
+  lastPulledAt?: number | null;
+  [key: string]: unknown;
 }): Promise<SyncPullResult> {
   const batchSize = Config.sync.pullBatchSize;
 

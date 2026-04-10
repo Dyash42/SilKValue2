@@ -1,31 +1,21 @@
 import React from 'react';
-import {
-  View,
-  TouchableOpacity,
-  StyleSheet,
-  ViewStyle,
-  Platform,
-} from 'react-native';
+import { View, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
+
+// Design system colors
+const BG = '#FFFFFF';
+const BORDER = '#E5E5E5';
 
 interface CardProps {
   children: React.ReactNode;
   style?: ViewStyle;
   onPress?: () => void;
-  elevated?: boolean;
-  padding?: number;
+  padded?: boolean;
 }
 
-const Card: React.FC<CardProps> = ({
-  children,
-  style,
-  onPress,
-  elevated = false,
-  padding = 16,
-}) => {
+export default function Card({ children, style, onPress, padded = true }: CardProps) {
   const cardStyle: ViewStyle[] = [
     styles.card,
-    elevated && styles.elevated,
-    { padding },
+    padded ? styles.padded : null,
     style,
   ].filter(Boolean) as ViewStyle[];
 
@@ -43,39 +33,21 @@ const Card: React.FC<CardProps> = ({
   }
 
   return <View style={cardStyle}>{children}</View>;
-};
-
-export default Card;
+}
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: BG,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.06,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    borderColor: BORDER,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
   },
-  elevated: {
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 10,
-      },
-      android: {
-        elevation: 6,
-      },
-    }),
+  padded: {
+    padding: 16,
   },
 });

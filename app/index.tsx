@@ -2,13 +2,17 @@ import { Redirect } from 'expo-router';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useAuthStore } from '@/stores/auth.store';
 
+const WHITE = '#FFFFFF';
+const BLACK = '#000000';
+
 export default function Index() {
   const { isAuthenticated, role, isLoading } = useAuthStore();
 
+  // Still resolving session from storage
   if (isLoading) {
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color="#2D6A4F" />
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color={BLACK} />
       </View>
     );
   }
@@ -17,35 +21,23 @@ export default function Index() {
     return <Redirect href="/(auth)/login" />;
   }
 
-  if (role === 'reeler') {
-    return <Redirect href="/(reeler)/dashboard" />;
-  }
+  // Route by role
+  if (role === 'reeler') return <Redirect href="/(reeler)/dashboard" />;
+  if (role === 'collector') return <Redirect href="/(collector)/dashboard" />;
+  if (role === 'supervisor') return <Redirect href="/(collector)/dashboard" />;
+  if (role === 'qc_operator') return <Redirect href="/(gate)/dashboard" />;
+  if (role === 'admin') return <Redirect href="/(gate)/dashboard" />;
+  if (role === 'finance') return <Redirect href="/(reeler)/dashboard" />;
 
-  if (role === 'collector') {
-    return <Redirect href="/(collector)/dashboard" />;
-  }
-
-  if (role === 'supervisor') {
-    return <Redirect href="/(collector)/dashboard" />;
-  }
-
-  if (role === 'qc_operator') {
-    return <Redirect href="/(gate)/dashboard" />;
-  }
-
-  if (role === 'admin') {
-    return <Redirect href="/(gate)/dashboard" />;
-  }
-
-  // Default fallback
+  // Fallback — unknown role or no profile yet
   return <Redirect href="/(auth)/login" />;
 }
 
 const styles = StyleSheet.create({
-  loading: {
+  center: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F8F9FA',
+    justifyContent: 'center',
+    backgroundColor: WHITE,
   },
 });

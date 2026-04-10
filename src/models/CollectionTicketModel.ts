@@ -33,7 +33,7 @@ export default class CollectionTicketModel extends Model {
   @field('gps_accuracy_meters') gpsAccuracyMeters!: number | null;
   @field('device_id') deviceId!: string | null;
   @field('network_status') networkStatus!: string | null;
-  @field('sync_status') syncStatus!: string;
+  @field('sync_status') localSyncStatus!: string;
   @field('status') status!: string;
   @field('idempotency_key') idempotencyKey!: string;
   @field('photos') photos!: string | null;

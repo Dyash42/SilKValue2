@@ -6,48 +6,53 @@ import {
   StyleSheet,
   ViewStyle,
   TextStyle,
+  View,
 } from 'react-native';
+
+// Design system colors
+const BLACK = '#000000';
+const WHITE = '#FFFFFF';
+
+export type ButtonVariant = 'primary' | 'outline' | 'ghost';
+export type ButtonSize = 'sm' | 'md' | 'lg';
 
 interface ButtonProps {
   title: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost';
-  size?: 'sm' | 'md' | 'lg';
+  variant?: ButtonVariant;
+  size?: ButtonSize;
   disabled?: boolean;
   loading?: boolean;
+  icon?: React.ReactNode;
   fullWidth?: boolean;
-  icon?: string; // emoji icon prefix
 }
 
-const Button: React.FC<ButtonProps> = ({
+export default function Button({
   title,
   onPress,
   variant = 'primary',
   size = 'md',
   disabled = false,
   loading = false,
-  fullWidth = false,
   icon,
-}) => {
+  fullWidth = false,
+}: ButtonProps) {
   const isDisabled = disabled || loading;
+  const spinnerColor = variant === 'primary' ? WHITE : BLACK;
 
   const containerStyle: ViewStyle[] = [
     styles.base,
-    styles[`variant_${variant}`] as ViewStyle,
+    styles[`container_${variant}`] as ViewStyle,
     styles[`size_${size}`] as ViewStyle,
-    fullWidth && styles.fullWidth,
-    isDisabled && styles.disabled,
+    fullWidth ? styles.fullWidth : null,
+    isDisabled ? styles.disabled : null,
   ].filter(Boolean) as ViewStyle[];
 
-  const textStyle: TextStyle[] = [
-    styles.text,
-    styles[`text_${variant}`] as TextStyle,
-    styles[`textSize_${size}`] as TextStyle,
-    isDisabled && styles.textDisabled,
+  const labelStyle: TextStyle[] = [
+    styles.label,
+    styles[`label_${variant}`] as TextStyle,
+    styles[`labelSize_${size}`] as TextStyle,
   ].filter(Boolean) as TextStyle[];
-
-  const spinnerColor =
-    variant === 'outline' || variant === 'ghost' ? '#2D6A4F' : '#FFFFFF';
 
   return (
     <TouchableOpacity
@@ -61,98 +66,88 @@ const Button: React.FC<ButtonProps> = ({
       {loading ? (
         <ActivityIndicator size="small" color={spinnerColor} />
       ) : (
-        <Text style={textStyle}>
-          {icon ? `${icon}  ${title}` : title}
-        </Text>
+        <View style={styles.inner}>
+          {icon ? <View style={styles.iconWrap}>{icon}</View> : null}
+          <Text style={labelStyle}>{title}</Text>
+        </View>
       )}
     </TouchableOpacity>
   );
-};
-
-export default Button;
+}
 
 const styles = StyleSheet.create({
   base: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 10,
+    borderRadius: 8,
     borderWidth: 0,
   },
   fullWidth: {
     width: '100%',
   },
   disabled: {
-    opacity: 0.45,
+    opacity: 0.4,
+  },
+  inner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconWrap: {
+    marginRight: 8,
   },
 
-  // --- Variants ---
-  variant_primary: {
-    backgroundColor: '#2D6A4F',
+  // Containers
+  container_primary: {
+    backgroundColor: BLACK,
+    borderWidth: 0,
   },
-  variant_secondary: {
-    backgroundColor: '#1A1A1A',
+  container_outline: {
+    backgroundColor: WHITE,
+    borderWidth: 1,
+    borderColor: BLACK,
   },
-  variant_outline: {
+  container_ghost: {
     backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: '#2D6A4F',
-  },
-  variant_danger: {
-    backgroundColor: '#EF4444',
-  },
-  variant_ghost: {
-    backgroundColor: 'transparent',
+    borderWidth: 0,
   },
 
-  // --- Sizes ---
+  // Sizes
   size_sm: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
   },
   size_md: {
     paddingHorizontal: 18,
-    paddingVertical: 11,
-    borderRadius: 10,
+    paddingVertical: 12,
   },
   size_lg: {
     paddingHorizontal: 24,
-    paddingVertical: 15,
-    borderRadius: 12,
+    paddingVertical: 16,
   },
 
-  // --- Text ---
-  text: {
+  // Labels
+  label: {
     fontWeight: '600',
     letterSpacing: 0.2,
   },
-  text_primary: {
-    color: '#FFFFFF',
+  label_primary: {
+    color: WHITE,
   },
-  text_secondary: {
-    color: '#FFFFFF',
+  label_outline: {
+    color: BLACK,
   },
-  text_outline: {
-    color: '#2D6A4F',
-  },
-  text_danger: {
-    color: '#FFFFFF',
-  },
-  text_ghost: {
-    color: '#2D6A4F',
-  },
-  textDisabled: {
-    // opacity handled by container
+  label_ghost: {
+    color: BLACK,
   },
 
-  textSize_sm: {
+  // Label sizes
+  labelSize_sm: {
     fontSize: 13,
   },
-  textSize_md: {
+  labelSize_md: {
     fontSize: 15,
   },
-  textSize_lg: {
-    fontSize: 17,
+  labelSize_lg: {
+    fontSize: 16,
   },
 });

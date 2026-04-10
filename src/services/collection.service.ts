@@ -92,7 +92,7 @@ export async function createTicket(
         record.gpsAccuracyMeters = gpsAccuracyMeters;
         record.deviceId = deviceId;
         record.networkStatus = networkStatus;
-        record.syncStatus = 'pending';
+        record.localSyncStatus = 'pending';
         record.status = 'draft';
         record.idempotencyKey = idempotencyKey;
       });
@@ -121,7 +121,7 @@ export async function submitTicket(localId: string): Promise<CollectionTicketMod
   await database.write(async () => {
     await ticket.update((record) => {
       record.status = 'submitted';
-      record.syncStatus = 'pending';
+      record.localSyncStatus = 'pending';
     });
   });
 

@@ -64,6 +64,26 @@ export function formatTime(value: Date | string, locale: string = 'en-IN'): stri
 }
 
 /**
+ * Format a Date (or ISO string) to a locale date + time string.
+ * e.g. "09 Apr 2026, 14:35"
+ */
+export function formatDateTime(value: Date | string, locale: string = 'en-IN'): string {
+  try {
+    const d = typeof value === 'string' ? new Date(value) : value;
+    if (isNaN(d.getTime())) return '—';
+    const date = d.toLocaleDateString(locale, {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+    const time = d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+    return `${date}, ${time}`;
+  } catch {
+    return String(value);
+  }
+}
+
+/**
  * Return a human-readable "X mins ago" / "X hrs ago" relative label.
  */
 export function formatRelativeTime(value: Date | string): string {

@@ -1,4 +1,4 @@
-import Database from '@nozbe/watermelondb';
+import { Database } from '@nozbe/watermelondb';
 import SQLiteAdapter from '@nozbe/watermelondb/adapters/sqlite';
 
 import { watermelonSchema } from './schema';
