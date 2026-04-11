@@ -8,22 +8,22 @@
       "port": 19006
     },
     {
-      "name": "Expo Dev Server (Metro)",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "start"],
+      "name": "Expo Metro (Android / iOS)",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["expo", "start", "--port", "8081"],
       "port": 8081
     },
     {
-      "name": "Expo Android",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "android"],
-      "port": 8081
+      "name": "TypeScript Watch",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["tsc", "--noEmit", "--watch", "--pretty"],
+      "port": 6789
     },
     {
-      "name": "Expo iOS",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "ios"],
-      "port": 8081
+      "name": "Jest (watch)",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["jest", "--watchAll", "--no-coverage"],
+      "port": 9229
     }
   ]
 }

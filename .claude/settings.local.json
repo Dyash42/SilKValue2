@@ -13,7 +13,16 @@
       "Bash(node -e \"require.resolve\\('events/'\\)\")",
       "Bash(node -e \"require.resolve\\('stream-browserify'\\)\")",
       "Bash(node -e \"require.resolve\\('buffer/'\\)\")",
-      "mcp__Claude_Preview__preview_start"
+      "mcp__Claude_Preview__preview_start",
+      "Bash(./gradlew --stop)",
+      "Bash(taskkill //F //IM java.exe)",
+      "Bash(mkdir -p \"/c/gradle-home\")",
+      "Bash(GRADLE_USER_HOME=\"C:\\\\\\\\gradle-home\" cd \"/c/1D/BKR/SilK/SilkValueDebugged\")",
+      "Bash(GRADLE_USER_HOME=\"C:\\\\\\\\gradle-home\" npx expo run:android --port 8083)",
+      "Bash(rm -rf \"/c/1D/BKR/SilK/SilkValueDebugged/android/.gradle\")",
+      "Bash(./gradlew app:assembleDebug -x lint -x test --no-daemon -PreactNativeDevServerPort=8083 -PreactNativeArchitectures=arm64-v8a)",
+      "Bash(taskkill //F //IM node.exe)",
+      "Bash(\"/c/Users/ASUS/AppData/Local/Android/Sdk/platform-tools/adb\" devices:*)"
     ]
   }
 }

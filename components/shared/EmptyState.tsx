@@ -1,12 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { DT } from '@/constants/designTokens';
 
-// Design system colors
-const BLACK = '#000000';
-const WHITE = '#FFFFFF';
-const BORDER = '#E5E5E5';
-const TEXT_PRIMARY = '#111111';
-const TEXT_SECONDARY = '#666666';
+const { C, T, S, R } = { C: DT.colors, T: DT.type, S: DT.space, R: DT.radius };
 
 interface EmptyStateProps {
   icon?: string;
@@ -38,40 +34,40 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 32,
-    paddingVertical: 48,
+    paddingHorizontal: S['2xl'],
+    paddingVertical: S['3xl'],
   },
   icon: {
     fontSize: 48,
-    marginBottom: 16,
+    marginBottom: S.base,
     textAlign: 'center',
   },
   title: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: TEXT_PRIMARY,
+    fontSize: T['2xl'],
+    fontWeight: T.bold,
+    color: C.textPrimary,
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: S.sm,
   },
   subtitle: {
-    fontSize: 14,
-    color: TEXT_SECONDARY,
+    fontSize: T.md,
+    color: C.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
-    marginBottom: 24,
+    marginBottom: S.xl,
   },
   button: {
     borderWidth: 1,
-    borderColor: BLACK,
-    borderRadius: 8,
-    paddingHorizontal: 24,
+    borderColor: C.black,
+    borderRadius: R.md,
+    paddingHorizontal: S.xl,
     paddingVertical: 11,
-    backgroundColor: WHITE,
-    marginTop: 8,
+    backgroundColor: C.white,
+    marginTop: S.sm,
   },
   buttonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: BLACK,
+    fontSize: T.md,
+    fontWeight: T.semibold,
+    color: C.black,
   },
 });

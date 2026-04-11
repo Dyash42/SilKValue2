@@ -1,12 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
+import { DT } from '@/constants/designTokens';
 
-// Design system colors
-const BG = '#FFFFFF';
-const BORDER = '#E5E5E5';
-const TEXT_PRIMARY = '#111111';
-const TEXT_SECONDARY = '#666666';
-const TEXT_MUTED = '#999999';
+const { C, T, S, R } = { C: DT.colors, T: DT.type, S: DT.space, R: DT.radius };
 
 interface StatCardProps {
   label: string;
@@ -42,21 +38,21 @@ export default function StatCard({ label, value, unit, caption, style, onPress }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: BG,
-    borderRadius: 8,
+    backgroundColor: C.white,
+    borderRadius: R.md,
     borderWidth: 1,
-    borderColor: BORDER,
-    padding: 16,
-    shadowColor: '#000',
+    borderColor: C.border,
+    padding: S.base,
+    shadowColor: C.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 3,
     elevation: 2,
   },
   label: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: TEXT_SECONDARY,
+    fontSize: T.sm,
+    fontWeight: T.semibold,
+    color: C.textSecondary,
     letterSpacing: 1,
     textTransform: 'uppercase',
     marginBottom: 6,
@@ -66,20 +62,20 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   value: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: TEXT_PRIMARY,
+    fontSize: T['6xl'],
+    fontWeight: T.bold,
+    color: C.textPrimary,
     lineHeight: 38,
   },
   unit: {
-    fontSize: 12,
-    color: TEXT_MUTED,
-    marginLeft: 4,
+    fontSize: T.base,
+    color: C.textMuted,
+    marginLeft: S.xs,
     marginBottom: 4,
   },
   caption: {
-    fontSize: 12,
-    color: TEXT_MUTED,
-    marginTop: 4,
+    fontSize: T.base,
+    color: C.textMuted,
+    marginTop: S.xs,
   },
 });

@@ -1,36 +1,40 @@
-import { Redirect } from 'expo-router';
+import { useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/stores/auth.store';
-
-const WHITE = '#FFFFFF';
-const BLACK = '#000000';
+import { DT } from '@/constants/designTokens';
 
 export default function Index() {
   const { isAuthenticated, role, isLoading } = useAuthStore();
+  const router = useRouter();
 
-  // Still resolving session from storage
-  if (isLoading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={BLACK} />
-      </View>
-    );
-  }
+  useEffect(() => {
+    if (isLoading) return; // wait until session resolved
 
-  if (!isAuthenticated) {
-    return <Redirect href="/(auth)/login" />;
-  }
+    if (!isAuthenticated) {
+      router.replace('/(auth)/login');
+      return;
+    }
 
-  // Route by role
-  if (role === 'reeler') return <Redirect href="/(reeler)/dashboard" />;
-  if (role === 'collector') return <Redirect href="/(collector)/dashboard" />;
-  if (role === 'supervisor') return <Redirect href="/(collector)/dashboard" />;
-  if (role === 'qc_operator') return <Redirect href="/(gate)/dashboard" />;
-  if (role === 'admin') return <Redirect href="/(gate)/dashboard" />;
-  if (role === 'finance') return <Redirect href="/(reeler)/dashboard" />;
+    // Route by role
+    if (role === 'reeler' || role === 'finance') {
+      router.replace('/(reeler)/dashboard');
+    } else if (role === 'collector' || role === 'supervisor') {
+      router.replace('/(collector)/home');
+    } else if (role === 'qc_operator' || role === 'admin') {
+      router.replace('/(gate)/overview');
+    } else {
+      // Unknown role — sign out and go to login
+      router.replace('/(auth)/login');
+    }
+  }, [isLoading, isAuthenticated, role]);
 
-  // Fallback — unknown role or no profile yet
-  return <Redirect href="/(auth)/login" />;
+  // Always show a loader while deciding where to go
+  return (
+    <View style={styles.center}>
+      <ActivityIndicator size="large" color={DT.colors.textPrimary} />
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -38,6 +42,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: WHITE,
+    backgroundColor: DT.colors.bg,
   },
 });

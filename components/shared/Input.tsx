@@ -7,16 +7,9 @@ import {
   KeyboardTypeOptions,
   ViewStyle,
 } from 'react-native';
+import { DT } from '@/constants/designTokens';
 
-// Design system colors
-const BG = '#FFFFFF';
-const SURFACE_ALT = '#F5F5F5';
-const BORDER = '#E5E5E5';
-const TEXT_PRIMARY = '#111111';
-const TEXT_SECONDARY = '#666666';
-const TEXT_MUTED = '#999999';
-const RED = '#EF4444';
-const FOCUSED_BORDER = '#111111';
+const { C, T, S, R } = { C: DT.colors, T: DT.type, S: DT.space, R: DT.radius };
 
 interface InputProps {
   label?: string;
@@ -47,7 +40,7 @@ export default function Input({
 }: InputProps) {
   const [focused, setFocused] = useState(false);
 
-  const borderColor = error ? RED : focused ? FOCUSED_BORDER : BORDER;
+  const borderColor = error ? C.red : focused ? C.textPrimary : C.border;
 
   return (
     <View style={[styles.container, style]}>
@@ -70,7 +63,7 @@ export default function Input({
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor={TEXT_MUTED}
+          placeholderTextColor={C.textMuted}
           keyboardType={keyboardType}
           secureTextEntry={secureTextEntry}
           multiline={multiline}
@@ -92,12 +85,12 @@ export default function Input({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 16,
+    marginBottom: S.base,
   },
   label: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: TEXT_SECONDARY,
+    fontSize: T.sm,
+    fontWeight: T.semibold,
+    color: C.textSecondary,
     letterSpacing: 1,
     textTransform: 'uppercase',
     marginBottom: 6,
@@ -105,35 +98,35 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: BG,
+    backgroundColor: C.white,
     borderWidth: 1,
-    borderRadius: 6,
+    borderRadius: R.sm,
     overflow: 'hidden',
   },
   disabledWrapper: {
-    backgroundColor: SURFACE_ALT,
+    backgroundColor: C.surfaceAlt,
   },
   input: {
     flex: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: TEXT_PRIMARY,
+    paddingHorizontal: S.md,
+    paddingVertical: S.md,
+    fontSize: T.lg,
+    color: C.textPrimary,
   },
   multiline: {
     minHeight: 88,
     textAlignVertical: 'top',
   },
   inputDisabled: {
-    color: TEXT_SECONDARY,
+    color: C.textSecondary,
   },
   rightElement: {
-    paddingRight: 12,
+    paddingRight: S.md,
   },
   errorText: {
-    fontSize: 12,
-    color: RED,
-    marginTop: 4,
+    fontSize: T.base,
+    color: C.red,
+    marginTop: S.xs,
     marginLeft: 2,
   },
 });

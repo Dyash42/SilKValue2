@@ -1,12 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { DT } from '@/constants/designTokens';
 
-// Design system colors
-const BLACK = '#000000';
-const WHITE = '#FFFFFF';
-const RED = '#EF4444';
-const AMBER = '#F59E0B';
-const TEXT_SECONDARY = '#666666';
+const { C, T, S, R } = { C: DT.colors, T: DT.type, S: DT.space, R: DT.radius };
 
 interface SyncStatusBarProps {
   isSyncing: boolean;
@@ -71,49 +67,49 @@ const styles = StyleSheet.create({
     height: 32,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    backgroundColor: WHITE,
-    gap: 8,
+    paddingHorizontal: S.base,
+    backgroundColor: C.white,
+    gap: S.sm,
   },
   dot: {
     width: 7,
     height: 7,
-    borderRadius: 3.5,
+    borderRadius: R.full,
   },
   dotAmber: {
-    backgroundColor: AMBER,
+    backgroundColor: C.amber,
   },
   dotRed: {
-    backgroundColor: RED,
+    backgroundColor: C.red,
   },
   textGrey: {
     flex: 1,
-    fontSize: 11,
-    fontWeight: '600',
-    color: TEXT_SECONDARY,
+    fontSize: T.sm,
+    fontWeight: T.semibold,
+    color: C.textSecondary,
     letterSpacing: 0.5,
   },
   actionBtn: {
-    paddingHorizontal: 8,
+    paddingHorizontal: S.sm,
     paddingVertical: 3,
-    borderRadius: 4,
+    borderRadius: R.sm,
     borderWidth: 1,
-    borderColor: RED,
+    borderColor: C.red,
   },
   actionBtnText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: RED,
+    fontSize: T.sm,
+    fontWeight: T.semibold,
+    color: C.red,
   },
   syncBtn: {
     paddingHorizontal: 10,
     paddingVertical: 3,
-    borderRadius: 4,
-    backgroundColor: BLACK,
+    borderRadius: R.sm,
+    backgroundColor: C.black,
   },
   syncBtnText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: WHITE,
+    fontSize: T.sm,
+    fontWeight: T.semibold,
+    color: C.white,
   },
 });

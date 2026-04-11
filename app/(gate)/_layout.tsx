@@ -29,7 +29,7 @@ export default function GateLayout() {
       }}
     >
       <Tabs.Screen
-        name="dashboard"
+        name="overview"
         options={{
           title: 'DASHBOARD',
           tabBarIcon: ({ color, size }) => (

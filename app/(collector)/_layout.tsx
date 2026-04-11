@@ -29,7 +29,7 @@ export default function CollectorLayout() {
       }}
     >
       <Tabs.Screen
-        name="dashboard"
+        name="home"
         options={{
           title: 'HOME',
           tabBarIcon: ({ color, size }) => (

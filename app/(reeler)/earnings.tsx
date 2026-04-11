@@ -1,165 +1,211 @@
-import React, { useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
-  FlatList,
+  ScrollView,
+  TouchableOpacity,
   StyleSheet,
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useCollectionTicket } from '@/hooks/useCollectionTicket';
 import { useSync } from '@/hooks/useSync';
-import EarningCard from '@/components/reeler/EarningCard';
-import EmptyState from '@/components/shared/EmptyState';
-import CollectionTicketModel from '@/models/CollectionTicketModel';
-import { formatDate } from '@/utils/format';
+import SyncStatusBar from '@/components/shared/SyncStatusBar';
+import { formatCurrency } from '@/utils/format';
+import { DT } from '@/constants/designTokens';
 
-// Design system colors
-const BG = '#FFFFFF';
-const BLACK = '#000000';
-const BORDER = '#E5E5E5';
-const TEXT_PRIMARY = '#111111';
-const TEXT_SECONDARY = '#666666';
-const RED = '#EF4444';
+const { C, T, S, R } = { C: DT.colors, T: DT.type, S: DT.space, R: DT.radius };
 
-interface LedgerRow {
-  id: string;
-  date: string;
-  description: string;
-  amount: number;
-  type: 'credit' | 'debit';
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const GRADES = ['A+', 'A', 'B', 'C', 'Reject'] as const;
+type Grade = typeof GRADES[number];
+
+function gradeColor(g: Grade) {
+  if (g === 'A+' || g === 'A') return C.greenText;
+  if (g === 'B') return C.amberText;
+  return C.redText;
 }
 
-function buildLedger(tickets: CollectionTicketModel[]): LedgerRow[] {
-  return tickets.map((t) => ({
-    id: t.id,
-    date: formatDate(t.collectionTimestamp),
-    description: `Ticket ${t.ticketNumber} · Grade ${t.qualityGrade}`,
-    amount: t.totalAmount,
-    type: 'credit' as const,
-  }));
+function MetricCard({ label, value, sub, dark }: { label: string; value: string; sub?: string; dark?: boolean }) {
+  return (
+    <View style={[styles.metricCard, dark ? { backgroundColor: C.black } : { backgroundColor: C.surfaceAlt }]}>
+      <Text style={[styles.metricLabel, dark && { color: C.textMuted }]}>{label}</Text>
+      <Text style={[styles.metricValue, dark && { color: C.white }]}>{value}</Text>
+      {sub ? <Text style={[styles.metricSub, dark && { color: C.textMuted }]}>{sub}</Text> : null}
+    </View>
+  );
 }
 
 export default function EarningsScreen() {
-  const { pendingTickets } = useCollectionTicket();
-  const { isSyncing, triggerSync } = useSync();
-
-  const onRefresh = useCallback(async () => {
-    await triggerSync();
-  }, [triggerSync]);
-
   const now = new Date();
-  const thisMonth = pendingTickets.reduce((s, t) => {
-    const d = t.collectionTimestamp;
-    if (d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) {
-      return s + t.totalAmount;
-    }
-    return s;
-  }, 0);
-  const pendingPayment = pendingTickets
-    .filter((t) => t.status !== 'paid')
-    .reduce((s, t) => s + t.totalAmount, 0);
-  const total = pendingTickets.reduce((s, t) => s + t.totalAmount, 0);
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
+  const { pendingTickets } = useCollectionTicket();
+  const { isSyncing, pendingCount, error: syncError, triggerSync } = useSync();
 
-  const ledger = buildLedger(pendingTickets);
-
-  const renderRow = useCallback(
-    ({ item }: { item: LedgerRow }) => (
-      <View style={styles.ledgerRow}>
-        <View style={styles.ledgerLeft}>
-          <Text style={styles.ledgerDate}>{item.date}</Text>
-          <Text style={styles.ledgerDesc} numberOfLines={1}>{item.description}</Text>
-        </View>
-        <Text style={[styles.ledgerAmount, item.type === 'debit' ? styles.debit : null]}>
-          {item.type === 'credit' ? '+' : '-'}
-          {'\u20B9'}{item.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-        </Text>
-      </View>
-    ),
-    [],
+  const monthTickets = useMemo(
+    () => pendingTickets.filter((t) => {
+      const d = t.collectionTimestamp;
+      return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
+    }),
+    [pendingTickets, selectedMonth, selectedYear],
   );
 
-  const keyExtractor = useCallback((item: LedgerRow) => item.id, []);
+  const totalEarnings = useMemo(() => monthTickets.reduce((s, t) => s + t.totalAmount, 0), [monthTickets]);
+  const totalWeight = useMemo(() => monthTickets.reduce((s, t) => s + t.netWeightKg, 0), [monthTickets]);
+
+  const gradeBreakdown = useMemo(() => {
+    const map: Record<string, { count: number; weight: number; amount: number }> = {};
+    for (const g of GRADES) map[g] = { count: 0, weight: 0, amount: 0 };
+    for (const t of monthTickets) {
+      const g = t.qualityGrade || 'Reject';
+      if (map[g]) { map[g].count += 1; map[g].weight += t.netWeightKg; map[g].amount += t.totalAmount; }
+    }
+    return map;
+  }, [monthTickets]);
+
+  const maxGradeWeight = useMemo(
+    () => Math.max(...Object.values(gradeBreakdown).map((v) => v.weight), 1),
+    [gradeBreakdown],
+  );
+
+  const prevMonth = useCallback(() => {
+    if (selectedMonth === 0) { setSelectedMonth(11); setSelectedYear((y) => y - 1); }
+    else setSelectedMonth((m) => m - 1);
+  }, [selectedMonth]);
+
+  const nextMonth = useCallback(() => {
+    if (selectedYear > now.getFullYear() || (selectedYear === now.getFullYear() && selectedMonth >= now.getMonth())) return;
+    if (selectedMonth === 11) { setSelectedMonth(0); setSelectedYear((y) => y + 1); }
+    else setSelectedMonth((m) => m + 1);
+  }, [selectedMonth, selectedYear, now]);
+
+  const isCurrentMonth = selectedMonth === now.getMonth() && selectedYear === now.getFullYear();
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.title}>My Earnings</Text>
+        <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Ionicons name="chevron-back" size={24} color={C.textPrimary} />
+        </TouchableOpacity>
+        <Text style={styles.title}>Earnings Report</Text>
+        <View style={{ width: 24 }} />
       </View>
 
-      <FlatList
-        data={ledger}
-        keyExtractor={keyExtractor}
-        renderItem={renderRow}
-        refreshControl={
-          <RefreshControl refreshing={isSyncing} onRefresh={onRefresh} tintColor={BLACK} />
-        }
-        ListHeaderComponent={
-          <View>
-            <EarningCard totalEarnings={total} thisMonth={thisMonth} pending={pendingPayment} />
-            <Text style={styles.sectionLabel}>TRANSACTION HISTORY</Text>
-          </View>
-        }
-        ListEmptyComponent={
-          <EmptyState
-            icon="💰"
-            title="No transactions yet"
-            subtitle="Your payment transactions will appear here."
-          />
-        }
-        contentContainerStyle={styles.listContent}
-      />
+      <SyncStatusBar isSyncing={isSyncing} pendingCount={pendingCount} error={syncError} onSync={triggerSync} onRetry={triggerSync} />
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={isSyncing} onRefresh={triggerSync} tintColor={C.black} />}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Month selector */}
+        <View style={styles.monthSelector}>
+          <TouchableOpacity onPress={prevMonth} style={styles.monthBtn}>
+            <Ionicons name="chevron-back" size={20} color={C.textPrimary} />
+          </TouchableOpacity>
+          <Text style={styles.monthLabel}>{MONTHS[selectedMonth]} {selectedYear}</Text>
+          <TouchableOpacity onPress={nextMonth} style={[styles.monthBtn, isCurrentMonth && styles.monthBtnDisabled]} disabled={isCurrentMonth}>
+            <Ionicons name="chevron-forward" size={20} color={isCurrentMonth ? C.textMuted : C.textPrimary} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Metric cards */}
+        <View style={styles.metricsGrid}>
+          <MetricCard label="TOTAL EARNINGS" value={formatCurrency(totalEarnings)} dark />
+          <MetricCard label="COLLECTIONS" value={String(monthTickets.length)} sub="this month" />
+          <MetricCard label="TOTAL WEIGHT" value={`${totalWeight.toFixed(1)} kg`} />
+        </View>
+
+        {/* Grade breakdown */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>GRADE BREAKDOWN</Text>
+          {GRADES.map((g) => {
+            const data = gradeBreakdown[g];
+            if (data.count === 0) return null;
+            const barW = maxGradeWeight > 0 ? (data.weight / maxGradeWeight) * 100 : 0;
+            return (
+              <View key={g} style={styles.gradeRow}>
+                <View style={[styles.gradeDot, { backgroundColor: gradeColor(g) }]} />
+                <Text style={styles.gradeKey}>{g}</Text>
+                <View style={styles.barTrack}>
+                  <View style={[styles.barFill, { width: `${barW}%` as any, backgroundColor: gradeColor(g) }]} />
+                </View>
+                <Text style={styles.gradeWeight}>{data.weight.toFixed(1)} kg</Text>
+                <Text style={styles.gradeAmount}>{formatCurrency(data.amount)}</Text>
+              </View>
+            );
+          })}
+          {monthTickets.length === 0 && (
+            <Text style={styles.emptyText}>No collections in this period.</Text>
+          )}
+        </View>
+
+        {/* ESG Report link */}
+        <TouchableOpacity style={styles.esgLink} onPress={() => router.push('/(reeler)/esg-report')} activeOpacity={0.8}>
+          <Ionicons name="leaf-outline" size={18} color={C.greenText} />
+          <Text style={styles.esgLinkText}>View ESG Report</Text>
+          <Ionicons name="chevron-forward" size={16} color={C.greenText} />
+        </TouchableOpacity>
+
+        {/* Actions */}
+        <View style={styles.actionsRow}>
+          <TouchableOpacity style={styles.actionBtn} onPress={() => router.push('/(reeler)/report-table')} activeOpacity={0.85}>
+            <Ionicons name="list-outline" size={16} color={C.textPrimary} />
+            <Text style={styles.actionBtnText}>Detailed Table</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.actionBtn, styles.actionBtnPrimary]} onPress={() => alert('PDF export coming soon.')} activeOpacity={0.85}>
+            <Ionicons name="document-outline" size={16} color={C.white} />
+            <Text style={[styles.actionBtnText, { color: C.white }]}>Export PDF</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BG },
+  container: { flex: 1, backgroundColor: C.bg },
+  scrollContent: { paddingBottom: 40 },
   header: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: BORDER,
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: S.base, paddingVertical: S.md,
+    borderBottomWidth: 1, borderBottomColor: C.border,
   },
-  title: { fontSize: 22, fontWeight: '700', color: TEXT_PRIMARY },
-  listContent: { paddingBottom: 40, flexGrow: 1 },
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: TEXT_SECONDARY,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    paddingHorizontal: 16,
-    paddingTop: 4,
-    paddingBottom: 8,
+  title: { flex: 1, fontSize: T['2xl'], fontWeight: T.bold, color: C.textPrimary, textAlign: 'center' },
+  monthSelector: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: S.base, gap: S.xl },
+  monthBtn: { padding: S.xs },
+  monthBtnDisabled: { opacity: 0.3 },
+  monthLabel: { fontSize: T.xl, fontWeight: T.bold, color: C.textPrimary, minWidth: 120, textAlign: 'center' },
+  metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: S.sm, paddingHorizontal: S.base, paddingBottom: S.base },
+  metricCard: { flex: 1, minWidth: 100, borderRadius: R.lg, padding: S.md },
+  metricLabel: { fontSize: T.xs, fontWeight: T.bold, color: C.textSecondary, letterSpacing: 0.8, marginBottom: 4 },
+  metricValue: { fontSize: T['3xl'], fontWeight: T.extrabold, color: C.textPrimary },
+  metricSub: { fontSize: T.xs, color: C.textMuted, marginTop: 2 },
+  section: { paddingHorizontal: S.base, marginBottom: S.base },
+  sectionTitle: { fontSize: T.xs, fontWeight: T.bold, color: C.textSecondary, letterSpacing: 1, textTransform: 'uppercase', marginBottom: S.md },
+  gradeRow: { flexDirection: 'row', alignItems: 'center', gap: S.sm, marginBottom: S.sm },
+  gradeDot: { width: 8, height: 8, borderRadius: R.full },
+  gradeKey: { width: 36, fontSize: T.base, fontWeight: T.bold, color: C.textPrimary },
+  barTrack: { flex: 1, height: 8, backgroundColor: C.surfaceAlt, borderRadius: R.full, overflow: 'hidden' },
+  barFill: { height: 8, borderRadius: R.full },
+  gradeWeight: { width: 60, fontSize: T.base, color: C.textSecondary, textAlign: 'right' },
+  gradeAmount: { width: 72, fontSize: T.base, fontWeight: T.semibold, color: C.textPrimary, textAlign: 'right' },
+  emptyText: { fontSize: T.base, color: C.textMuted, textAlign: 'center', paddingVertical: S.xl },
+  esgLink: {
+    flexDirection: 'row', alignItems: 'center', gap: S.sm,
+    marginHorizontal: S.base, marginBottom: S.base,
+    padding: S.md, borderRadius: R.lg, borderWidth: 1,
+    borderColor: C.greenText, backgroundColor: C.greenBg,
   },
-  ledgerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: BORDER,
-    backgroundColor: BG,
+  esgLinkText: { flex: 1, fontSize: T.md, fontWeight: T.semibold, color: C.greenText },
+  actionsRow: { flexDirection: 'row', gap: S.sm, paddingHorizontal: S.base },
+  actionBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: S.xs, borderWidth: 1, borderColor: C.border, borderRadius: R.lg, paddingVertical: 12,
   },
-  ledgerLeft: { flex: 1, marginRight: 12 },
-  ledgerDate: {
-    fontSize: 12,
-    color: TEXT_SECONDARY,
-    marginBottom: 2,
-  },
-  ledgerDesc: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: TEXT_PRIMARY,
-  },
-  ledgerAmount: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: TEXT_PRIMARY,
-  },
-  debit: {
-    color: RED,
-  },
+  actionBtnPrimary: { backgroundColor: C.black, borderColor: C.black },
+  actionBtnText: { fontSize: T.md, fontWeight: T.semibold, color: C.textPrimary },
 });

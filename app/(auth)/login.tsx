@@ -7,96 +7,44 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Alert,
-  ScrollView,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { router } from 'expo-router';
-import { signInWithPhone, signInWithEmail } from '@/lib/supabase/auth';
-import { useAuthStore } from '@/stores/auth.store';
-import { supabase } from '@/lib/supabase/client';
+import { signInWithPhone } from '@/lib/supabase/auth';
+import { DT } from '@/constants/designTokens';
 
-type LoginMode = 'phone' | 'email';
+const { C, T, S, R } = { C: DT.colors, T: DT.type, S: DT.space, R: DT.radius };
 
 export default function LoginScreen() {
-  const [mode, setMode] = useState<LoginMode>('phone');
   const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { setSession, setUser, setProfile } = useAuthStore();
-
   const formatPhone = (raw: string): string => {
     const digits = raw.replace(/\D/g, '');
-    if (digits.startsWith('91') && digits.length > 10) {
-      return `+${digits}`;
-    }
-    if (digits.length === 10) {
-      return `+91${digits}`;
-    }
+    if (digits.startsWith('91') && digits.length > 10) return `+${digits}`;
+    if (digits.length === 10) return `+91${digits}`;
     return raw.startsWith('+') ? raw : `+${digits}`;
   };
 
-  const handlePhoneSubmit = async () => {
+  const handleSubmit = async () => {
     const formatted = formatPhone(phone.trim());
-    if (formatted.length < 10) {
-      setError('Please enter a valid 10-digit phone number.');
+    if (formatted.replace(/\D/g, '').length < 10) {
+      setError('Enter a valid 10-digit mobile number.');
       return;
     }
-
     setLoading(true);
     setError(null);
-
     try {
       const { error: authError } = await signInWithPhone(formatted);
       if (authError) {
         setError(authError.message);
       } else {
-        router.push({
-          pathname: '/(auth)/otp',
-          params: { phone: formatted },
-        });
+        router.push({ pathname: '/(auth)/otp', params: { phone: formatted } });
       }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'An error occurred');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleEmailSubmit = async () => {
-    if (!email.trim() || !password.trim()) {
-      setError('Please enter both email and password.');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { session, user, error: authError } = await signInWithEmail(email.trim(), password);
-      if (authError) {
-        setError(authError.message);
-        return;
-      }
-      if (session && user) {
-        setSession(session);
-        setUser(user);
-
-        // Fetch profile
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-
-        if (profileData) setProfile(profileData);
-        router.replace('/');
-      }
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'An error occurred');
+      setError(e instanceof Error ? e.message : 'Something went wrong.');
     } finally {
       setLoading(false);
     }
@@ -108,10 +56,10 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Header */}
+        {/* Logo */}
         <View style={styles.header}>
           <View style={styles.logoCircle}>
             <Text style={styles.logoText}>SV</Text>
@@ -122,269 +70,107 @@ export default function LoginScreen() {
 
         {/* Card */}
         <View style={styles.card}>
-          {/* Mode Toggle */}
-          <View style={styles.modeToggle}>
-            <TouchableOpacity
-              style={[styles.modeButton, mode === 'phone' && styles.modeButtonActive]}
-              onPress={() => { setMode('phone'); setError(null); }}
-            >
-              <Text style={[styles.modeButtonText, mode === 'phone' && styles.modeButtonTextActive]}>
-                Phone
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.modeButton, mode === 'email' && styles.modeButtonActive]}
-              onPress={() => { setMode('email'); setError(null); }}
-            >
-              <Text style={[styles.modeButtonText, mode === 'email' && styles.modeButtonTextActive]}>
-                Email
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <Text style={styles.cardTitle}>Sign In</Text>
+          <Text style={styles.cardDesc}>Enter your registered mobile number to receive an OTP.</Text>
 
-          {/* Error */}
           {error ? (
             <View style={styles.errorBox}>
               <Text style={styles.errorText}>{error}</Text>
             </View>
           ) : null}
 
-          {/* Phone Mode */}
-          {mode === 'phone' && (
-            <View>
-              <Text style={styles.label}>Mobile Number</Text>
-              <View style={styles.phoneInputRow}>
-                <View style={styles.countryCode}>
-                  <Text style={styles.countryCodeText}>+91</Text>
-                </View>
-                <TextInput
-                  style={styles.phoneInput}
-                  placeholder="10-digit mobile number"
-                  placeholderTextColor="#ADB5BD"
-                  keyboardType="phone-pad"
-                  maxLength={15}
-                  value={phone}
-                  onChangeText={setPhone}
-                  autoComplete="tel"
-                />
-              </View>
-              <TouchableOpacity
-                style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-                onPress={handlePhoneSubmit}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.submitButtonText}>Send OTP</Text>
-                )}
-              </TouchableOpacity>
+          <Text style={styles.label}>MOBILE NUMBER</Text>
+          <View style={styles.phoneRow}>
+            <View style={styles.prefix}>
+              <Text style={styles.prefixText}>+91</Text>
             </View>
-          )}
+            <TextInput
+              style={styles.phoneInput}
+              placeholder="10-digit mobile number"
+              placeholderTextColor={C.textMuted}
+              keyboardType="phone-pad"
+              maxLength={10}
+              value={phone}
+              onChangeText={(t) => { setPhone(t.replace(/\D/g, '')); setError(null); }}
+              autoComplete="tel"
+            />
+          </View>
 
-          {/* Email Mode */}
-          {mode === 'email' && (
-            <View>
-              <Text style={styles.label}>Email Address</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="you@example.com"
-                placeholderTextColor="#ADB5BD"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-                value={email}
-                onChangeText={setEmail}
-              />
-              <Text style={styles.label}>Password</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="••••••••"
-                placeholderTextColor="#ADB5BD"
-                secureTextEntry
-                autoComplete="password"
-                value={password}
-                onChangeText={setPassword}
-              />
-              <TouchableOpacity
-                style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-                onPress={handleEmailSubmit}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.submitButtonText}>Sign In</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          )}
+          <TouchableOpacity
+            style={[styles.btn, loading && styles.btnDisabled]}
+            onPress={handleSubmit}
+            disabled={loading}
+            activeOpacity={0.85}
+          >
+            {loading
+              ? <ActivityIndicator color={C.white} />
+              : <Text style={styles.btnText}>Send OTP</Text>}
+          </TouchableOpacity>
         </View>
 
-        <Text style={styles.footer}>
-          Offline-first platform for silk cocoon collection
-        </Text>
+        <Text style={styles.footer}>Offline-first platform for silk cocoon collection</Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8F9FA',
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: 24,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 32,
-  },
+  container: { flex: 1, backgroundColor: C.bg },
+  scroll: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: S.xl, paddingVertical: 40 },
+
+  /* Header */
+  header: { alignItems: 'center', marginBottom: 36 },
   logoCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: '#2D6A4F',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
+    width: 72, height: 72, borderRadius: 36,
+    backgroundColor: C.black,
+    justifyContent: 'center', alignItems: 'center', marginBottom: 14,
   },
-  logoText: {
-    color: '#FFFFFF',
-    fontSize: 28,
-    fontWeight: '700',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#1A1A1A',
-    letterSpacing: 0.5,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginTop: 4,
-  },
+  logoText: { color: C.white, fontSize: T['4xl'], fontWeight: T.bold, letterSpacing: 1 },
+  title: { fontSize: T['4xl'], fontWeight: T.bold, color: C.textPrimary, letterSpacing: 0.3 },
+  subtitle: { fontSize: T.base, color: C.textSecondary, marginTop: 4 },
+
+  /* Card */
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+    backgroundColor: C.white,
+    borderRadius: R.lg,
+    borderWidth: 1,
+    borderColor: C.border,
+    padding: S.xl,
   },
-  modeToggle: {
-    flexDirection: 'row',
-    backgroundColor: '#F8F9FA',
-    borderRadius: 10,
-    padding: 4,
-    marginBottom: 20,
-  },
-  modeButton: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    borderRadius: 8,
-  },
-  modeButtonActive: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  modeButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#6B7280',
-  },
-  modeButtonTextActive: {
-    color: '#2D6A4F',
-    fontWeight: '600',
-  },
+  cardTitle: { fontSize: T['2xl'], fontWeight: T.bold, color: C.textPrimary, marginBottom: 6 },
+  cardDesc: { fontSize: T.base, color: C.textSecondary, marginBottom: S.lg, lineHeight: 18 },
+
+  /* Error */
   errorBox: {
-    backgroundColor: '#FEF2F2',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#FECACA',
+    backgroundColor: C.redBg, borderRadius: R.md, padding: S.md,
+    marginBottom: S.base, borderWidth: 1, borderColor: C.red,
   },
-  errorText: {
-    color: '#EF4444',
-    fontSize: 13,
-  },
+  errorText: { color: C.redText, fontSize: T.base },
+
+  /* Phone input */
   label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 6,
-    marginTop: 4,
+    fontSize: T.xs, fontWeight: T.bold, color: C.textMuted,
+    marginBottom: S.sm, letterSpacing: 0.8,
   },
-  phoneInputRow: {
-    flexDirection: 'row',
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 10,
-    overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
+  phoneRow: {
+    flexDirection: 'row', borderWidth: 1, borderColor: C.border,
+    borderRadius: R.lg, overflow: 'hidden', marginBottom: S.lg,
   },
-  countryCode: {
-    paddingHorizontal: 14,
-    justifyContent: 'center',
-    borderRightWidth: 1,
-    borderRightColor: '#E5E7EB',
-    backgroundColor: '#F9FAFB',
+  prefix: {
+    paddingHorizontal: 14, justifyContent: 'center',
+    borderRightWidth: 1, borderRightColor: C.border, backgroundColor: C.surfaceAlt,
   },
-  countryCodeText: {
-    fontSize: 15,
-    color: '#374151',
-    fontWeight: '500',
+  prefixText: { fontSize: T.lg, color: C.textPrimary, fontWeight: T.semibold },
+  phoneInput: { flex: 1, paddingHorizontal: 14, paddingVertical: 13, fontSize: T.lg, color: C.textPrimary },
+
+  /* Button */
+  btn: {
+    backgroundColor: C.black, borderRadius: R.lg,
+    paddingVertical: 15, alignItems: 'center',
   },
-  phoneInput: {
-    flex: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    fontSize: 15,
-    color: '#1A1A1A',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    fontSize: 15,
-    color: '#1A1A1A',
-    backgroundColor: '#FFFFFF',
-    marginBottom: 12,
-  },
-  submitButton: {
-    backgroundColor: '#2D6A4F',
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  submitButtonDisabled: {
-    opacity: 0.6,
-  },
-  submitButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  footer: {
-    textAlign: 'center',
-    color: '#9CA3AF',
-    fontSize: 12,
-    marginTop: 24,
-  },
+  btnDisabled: { opacity: 0.5 },
+  btnText: { color: C.white, fontSize: T.lg, fontWeight: T.bold, letterSpacing: 0.3 },
+
+  /* Footer */
+  footer: { textAlign: 'center', color: C.textMuted, fontSize: T.base, marginTop: 28 },
 });

@@ -25,7 +25,10 @@ module.exports = function (api) {
         },
       ],
       // WatermelonDB decorator support
+      // NOTE: legacy decorators MUST come before class-properties,
+      // and class-properties MUST use loose:true to avoid "definite assignment" clash
       ['@babel/plugin-proposal-decorators', { legacy: true }],
+      ['@babel/plugin-proposal-class-properties', { loose: true }],
       'react-native-reanimated/plugin',
     ],
   };
