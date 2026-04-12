@@ -1,11 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { DT } from '@/constants/designTokens';
 
-// Design system colors
-const BLACK = '#000000';
-const WHITE = '#FFFFFF';
-const BORDER = '#E5E5E5';
-const TEXT_PRIMARY = '#111111';
+const { C, T, R } = { C: DT.colors, T: DT.type, R: DT.radius };
 
 const GRADES = ['A', 'B', 'C', 'Reject'] as const;
 export type Grade = typeof GRADES[number];
@@ -40,35 +37,15 @@ export default function GradeSelector({ selected, onSelect }: GradeSelectorProps
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    gap: 8,
-  },
+  container: { flexDirection: 'row', gap: 8 },
   option: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    flex: 1, paddingVertical: 10, paddingHorizontal: 12,
+    borderRadius: R.sm, borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center',
   },
-  optionSelected: {
-    backgroundColor: BLACK,
-    borderColor: BLACK,
-  },
-  optionUnselected: {
-    backgroundColor: WHITE,
-    borderColor: BORDER,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  labelSelected: {
-    color: WHITE,
-  },
-  labelUnselected: {
-    color: TEXT_PRIMARY,
-  },
+  optionSelected: { backgroundColor: C.black, borderColor: C.black },
+  optionUnselected: { backgroundColor: C.white, borderColor: C.border },
+  label: { fontSize: T.md, fontWeight: T.semibold },
+  labelSelected: { color: C.white },
+  labelUnselected: { color: C.textPrimary },
 });

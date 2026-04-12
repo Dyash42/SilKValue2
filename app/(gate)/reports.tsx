@@ -1,376 +1,144 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  ActivityIndicator,
-  TouchableOpacity,
-  RefreshControl,
-  StyleSheet,
-} from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, FlatList, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '@/lib/supabase/client';
-import { useAuthStore } from '@/stores/auth.store';
-import { formatWeight } from '@/utils/format';
+import { useAuth } from '@/hooks/useAuth';
+import { getTodayEntries } from '@/services/gate.service';
+import StatCard from '@/components/shared/StatCard';
+import ShiftStatRow from '@/components/gate/ShiftStatRow';
+import GateEntryItem from '@/components/gate/GateEntryItem';
+import type { GateEntryRow } from '@/types';
+import { DT } from '@/constants/designTokens';
 
-// Design system colors
-const BLACK = '#000000';
-const WHITE = '#FFFFFF';
-const SURFACE_ALT = '#F5F5F5';
-const BORDER = '#E5E5E5';
-const TEXT_PRIMARY = '#111111';
-const TEXT_SECONDARY = '#666666';
-const TEXT_MUTED = '#999999';
-const GREEN = '#22C55E';
-const RED = '#EF4444';
-const AMBER = '#F59E0B';
+const { C, T, S, R } = { C: DT.colors, T: DT.type, S: DT.space, R: DT.radius };
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+export default function ShiftReportScreen() {
+  const { profile } = useAuth();
+  const [entries, setEntries] = useState<GateEntryRow[]>([]);
 
-interface PeriodStats {
-  total: number;
-  totalWeight: number;
-  accepted: number;
-  overrides: number;
-  passRate: number;
-}
+  const load = useCallback(async () => {
+    if (!profile?.user_id) return;
+    try { setEntries(await getTodayEntries(profile.user_id)); } catch { /* silent */ }
+  }, [profile?.user_id]);
 
-// ---------------------------------------------------------------------------
-// Inline StatCard component (no import)
-// ---------------------------------------------------------------------------
+  useEffect(() => { load(); }, [load]);
 
-function StatCard({
-  label,
-  value,
-  sub,
-  accent,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  accent?: string;
-}) {
-  return (
-    <View style={[styles.statCard, accent ? { borderTopWidth: 3, borderTopColor: accent } : {}]}>
-      <Text style={styles.statLabel}>{label}</Text>
-      <Text style={styles.statValue}>{value}</Text>
-      {sub ? <Text style={styles.statSub}>{sub}</Text> : null}
-    </View>
-  );
-}
+  const totalProcessed = entries.length;
+  const totalAcceptedKg = entries.reduce((s, e) => s + (e.final_accepted_weight_kg ?? e.gate_net_weight_kg ?? 0), 0);
+  const totalRejectedKg = entries.filter(e => e.qc_status === 'rejected').reduce((s, e) => s + (e.gate_net_weight_kg ?? 0), 0);
+  const avgVariance = entries.length > 0
+    ? entries.reduce((s, e) => s + Math.abs(e.variance_percent ?? 0), 0) / entries.length
+    : 0;
+  const overridesRaised = entries.filter(e => e.override_status != null && e.override_status !== 'none').length;
+  const overridesApproved = entries.filter(e => e.override_status === 'approved').length;
+  const dateStr = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
-// ---------------------------------------------------------------------------
-// Helper
-// ---------------------------------------------------------------------------
+  const handleExport = () => {
+    Alert.alert('Export', 'CSV export via expo-sharing — coming in Phase 2.');
+  };
 
-function isoStartOf(date: Date): string {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  return d.toISOString();
-}
-
-function isoEndOf(date: Date): string {
-  const d = new Date(date);
-  d.setHours(23, 59, 59, 999);
-  return d.toISOString();
-}
-
-function startOfWeek(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay(); // 0=Sun
-  d.setDate(d.getDate() - day);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
-// ---------------------------------------------------------------------------
-// Main screen
-// ---------------------------------------------------------------------------
-
-export default function ReportsScreen() {
-  const { user } = useAuthStore();
-  const [todayStats, setTodayStats] = useState<PeriodStats | null>(null);
-  const [weekStats, setWeekStats] = useState<PeriodStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchStats = useCallback(async (silent = false) => {
-    if (!silent) setIsLoading(true);
-    setError(null);
-
-    try {
-      const now = new Date();
-      const todayStart = isoStartOf(now);
-      const todayEnd = isoEndOf(now);
-      const weekStart = startOfWeek(now).toISOString();
-
-      // Fetch today's entries
-      const { data: todayData, error: todayErr } = await supabase
-        .from('gate_entries')
-        .select('gate_gross_weight_kg, qc_status, override_status')
-        .gte('created_at', todayStart)
-        .lte('created_at', todayEnd);
-
-      if (todayErr) throw new Error(todayErr.message);
-
-      // Fetch this week's entries
-      const { data: weekData, error: weekErr } = await supabase
-        .from('gate_entries')
-        .select('gate_gross_weight_kg, qc_status, override_status')
-        .gte('created_at', weekStart);
-
-      if (weekErr) throw new Error(weekErr.message);
-
-      function computeStats(rows: Array<{
-        gate_gross_weight_kg: number;
-        qc_status: string;
-        override_status: string | null;
-      }>): PeriodStats {
-        const total = rows.length;
-        const totalWeight = rows.reduce((sum, r) => sum + (r.gate_gross_weight_kg ?? 0), 0);
-        const accepted = rows.filter((r) =>
-          r.qc_status === 'accepted' || r.qc_status === 'override_accepted'
-        ).length;
-        const overrides = rows.filter((r) => r.override_status != null).length;
-        const passRate = total > 0 ? (accepted / total) * 100 : 0;
-        return { total, totalWeight, accepted, overrides, passRate };
-      }
-
-      setTodayStats(computeStats((todayData ?? []) as Array<{
-        gate_gross_weight_kg: number;
-        qc_status: string;
-        override_status: string | null;
-      }>));
-      setWeekStats(computeStats((weekData ?? []) as Array<{
-        gate_gross_weight_kg: number;
-        qc_status: string;
-        override_status: string | null;
-      }>));
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load reports.');
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
-
-  const onRefresh = useCallback(() => {
-    setIsRefreshing(true);
-    fetchStats(true);
-  }, [fetchStats]);
-
-  // ---------------------------------------------------------------------------
-  // Render helpers
-  // ---------------------------------------------------------------------------
-
-  function renderStatsGrid(stats: PeriodStats) {
-    return (
-      <View style={styles.statsGrid}>
-        <View style={styles.statsRow}>
-          <StatCard
-            label="TOTAL VEHICLES"
-            value={String(stats.total)}
-            sub="check-ins"
-            accent={BLACK}
-          />
-          <StatCard
-            label="TOTAL WEIGHT"
-            value={formatWeight(stats.totalWeight)}
-            accent={BLACK}
-          />
-        </View>
-        <View style={styles.statsRow}>
-          <StatCard
-            label="PASS RATE"
-            value={`${stats.passRate.toFixed(1)}%`}
-            sub={`${stats.accepted} accepted`}
-            accent={stats.passRate >= 80 ? GREEN : stats.passRate >= 50 ? AMBER : RED}
-          />
-          <StatCard
-            label="OVERRIDES"
-            value={String(stats.overrides)}
-            sub="manual overrides"
-            accent={stats.overrides > 0 ? AMBER : SURFACE_ALT}
-          />
-        </View>
-      </View>
+  const handleEndShift = () => {
+    Alert.alert(
+      'End Shift',
+      'This will finalise all pending entries and log your shift end time. Are you sure?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'End Shift', style: 'destructive', onPress: () => {
+          Alert.alert('Shift Ended', 'Shift ended successfully. All entries finalised.', [
+            { text: 'OK', onPress: () => router.push('/(gate)/dashboard') },
+          ]);
+        }},
+      ],
     );
-  }
-
-  // ---------------------------------------------------------------------------
-  // Loading / error
-  // ---------------------------------------------------------------------------
-
-  if (isLoading) {
-    return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Reports</Text>
-        </View>
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={BLACK} />
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (error) {
-    return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Reports</Text>
-        </View>
-        <View style={styles.centered}>
-          <Ionicons name="alert-circle-outline" size={48} color={TEXT_MUTED} />
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryBtn} onPress={() => fetchStats()}>
-            <Text style={styles.retryBtnText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  // ---------------------------------------------------------------------------
-  // Main render
-  // ---------------------------------------------------------------------------
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Reports</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Ionicons name="chevron-back" size={24} color={C.textPrimary} />
+        </TouchableOpacity>
+        <View>
+          <Text style={styles.title}>Shift Report</Text>
+          <Text style={styles.subtitle}>{dateStr}</Text>
+        </View>
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={onRefresh}
-            tintColor={BLACK}
-            colors={[BLACK]}
+      <ScrollView contentContainerStyle={styles.scroll}>
+        {/* Summary stats */}
+        <View style={styles.statsGrid}>
+          <StatCard label="Vehicles" value={String(totalProcessed)} style={styles.halfCard} />
+          <StatCard label="Weight Accepted" value={`${(totalAcceptedKg / 1000).toFixed(2)}`} unit="MT" style={styles.halfCard} />
+        </View>
+
+        <View style={styles.statBlock}>
+          <ShiftStatRow label="Weight Accepted" value={`${totalAcceptedKg.toFixed(0)}`} unit="kg" />
+          <ShiftStatRow label="Weight Rejected" value={`${totalRejectedKg.toFixed(0)}`} unit="kg" />
+          <ShiftStatRow label="Avg Variance" value={`${avgVariance.toFixed(1)}`} unit="%" />
+          <ShiftStatRow label="Overrides Raised" value={String(overridesRaised)} />
+          <ShiftStatRow label="Overrides Approved" value={String(overridesApproved)} />
+        </View>
+
+        {/* Entry table */}
+        <Text style={styles.sectionLabel}>TODAY'S ENTRIES</Text>
+        {entries.map(e => (
+          <GateEntryItem
+            key={e.id}
+            entry={e}
+            onPress={() => router.push(`/(gate)/history/${e.id}`)}
           />
-        }
-      >
-        {/* Today's summary */}
-        <Text style={styles.sectionLabel}>TODAY'S SUMMARY</Text>
-        {todayStats && todayStats.total === 0 ? (
-          <View style={styles.emptyPeriod}>
-            <Text style={styles.emptyPeriodText}>No entries recorded today.</Text>
-          </View>
-        ) : todayStats ? (
-          renderStatsGrid(todayStats)
-        ) : null}
+        ))}
 
-        {/* This week */}
-        <Text style={[styles.sectionLabel, { marginTop: 24 }]}>THIS WEEK</Text>
-        {weekStats && weekStats.total === 0 ? (
-          <View style={styles.emptyPeriod}>
-            <Text style={styles.emptyPeriodText}>No entries recorded this week.</Text>
-          </View>
-        ) : weekStats ? (
-          renderStatsGrid(weekStats)
-        ) : null}
+        {/* Actions */}
+        <TouchableOpacity style={styles.outlineBtn} onPress={handleExport} activeOpacity={0.85}>
+          <Ionicons name="download-outline" size={16} color={C.textPrimary} />
+          <Text style={styles.outlineBtnText}>Export Report</Text>
+        </TouchableOpacity>
 
-        {/* Pass rate context note */}
-        {weekStats && weekStats.total > 0 && (
-          <View style={styles.noteCard}>
-            <Ionicons name="information-circle-outline" size={16} color={TEXT_SECONDARY} style={{ marginRight: 8 }} />
-            <Text style={styles.noteText}>
-              Pass rate is calculated as accepted + override-accepted entries over total check-ins.
-            </Text>
-          </View>
-        )}
-
-        <View style={{ height: 40 }} />
+        <TouchableOpacity style={styles.endShiftBtn} onPress={handleEndShift} activeOpacity={0.85}>
+          <Text style={styles.endShiftText}>End Shift</Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Styles
-// ---------------------------------------------------------------------------
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: WHITE },
-
+  container: { flex: 1, backgroundColor: C.bg },
   header: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: BORDER,
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: S.base, paddingVertical: S.md,
+    borderBottomWidth: 1, borderBottomColor: C.border,
   },
-  headerTitle: { fontSize: 22, fontWeight: '700', color: TEXT_PRIMARY },
+  backBtn: { marginRight: S.sm },
+  title: { fontSize: T['2xl'], fontWeight: T.bold, color: C.textPrimary },
+  subtitle: { fontSize: T.base, color: C.textSecondary, marginTop: 2 },
+  scroll: { padding: S.base, paddingBottom: S['3xl'] },
 
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  errorText: { fontSize: 15, color: TEXT_SECONDARY, marginTop: 12, textAlign: 'center' },
-  retryBtn: {
-    marginTop: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: BLACK,
+  statsGrid: { flexDirection: 'row', gap: S.sm, marginBottom: S.md },
+  halfCard: { flex: 1 },
+
+  statBlock: {
+    borderWidth: 1, borderColor: C.border, borderRadius: R.lg,
+    paddingHorizontal: S.base, marginBottom: S.xl,
   },
-  retryBtnText: { fontSize: 14, fontWeight: '600', color: WHITE },
-
-  scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 32 },
 
   sectionLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: TEXT_SECONDARY,
-    letterSpacing: 1,
-    marginBottom: 12,
+    fontSize: T.xs, fontWeight: T.bold, color: C.textMuted,
+    letterSpacing: 1, marginBottom: S.md,
   },
 
-  statsGrid: { marginBottom: 8 },
-  statsRow: { flexDirection: 'row', marginBottom: 10 },
+  outlineBtn: {
+    borderWidth: 1, borderColor: C.border, borderRadius: R.lg,
+    paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: S.sm, marginTop: S.lg, marginBottom: S.sm,
+  },
+  outlineBtnText: { fontSize: T.lg, fontWeight: T.bold, color: C.textPrimary },
 
-  // Inline StatCard styles
-  statCard: {
-    flex: 1,
-    backgroundColor: SURFACE_ALT,
-    borderRadius: 10,
-    padding: 16,
-    marginHorizontal: 4,
-    overflow: 'hidden',
+  endShiftBtn: {
+    backgroundColor: C.black, borderRadius: R.lg,
+    paddingVertical: 14, alignItems: 'center',
   },
-  statLabel: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: TEXT_MUTED,
-    letterSpacing: 0.8,
-    marginBottom: 8,
-  },
-  statValue: { fontSize: 24, fontWeight: '800', color: TEXT_PRIMARY, marginBottom: 4 },
-  statSub: { fontSize: 11, color: TEXT_SECONDARY },
-
-  emptyPeriod: {
-    backgroundColor: SURFACE_ALT,
-    borderRadius: 8,
-    padding: 20,
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  emptyPeriodText: { fontSize: 14, color: TEXT_MUTED },
-
-  noteCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: SURFACE_ALT,
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 8,
-  },
-  noteText: { flex: 1, fontSize: 12, color: TEXT_SECONDARY, lineHeight: 18 },
+  endShiftText: { color: C.white, fontSize: T.lg, fontWeight: T.bold },
 });

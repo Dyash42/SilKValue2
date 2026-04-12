@@ -19,8 +19,10 @@ export default function Index() {
     // Route by role
     if (role === 'reeler' || role === 'finance') {
       router.replace('/(reeler)/dashboard');
-    } else if (role === 'collector' || role === 'supervisor') {
+    } else if (role === 'collector') {
       router.replace('/(collector)/home');
+    } else if (role === 'supervisor') {
+      router.replace('/(supervisor)/create-route');
     } else if (role === 'qc_operator' || role === 'admin') {
       router.replace('/(gate)/overview');
     } else {

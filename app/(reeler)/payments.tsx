@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSync } from '@/hooks/useSync';
+import { useLedger } from '@/hooks/useLedger';
 import SyncStatusBar from '@/components/shared/SyncStatusBar';
 import EmptyState from '@/components/shared/EmptyState';
 import { supabase } from '@/lib/supabase/client';
@@ -115,6 +116,9 @@ export default function PaymentsScreen() {
 
   const reelerId = profile?.id ?? user?.id ?? null;
 
+  // Live available balance from ledger
+  const { summary: ledgerSummary, refresh: refreshLedger } = useLedger(reelerId);
+
   const fetchPayments = useCallback(async (silent = false) => {
     if (!reelerId) { setIsLoading(false); return; }
     if (!silent) setIsLoading(true);
@@ -141,7 +145,8 @@ export default function PaymentsScreen() {
     setIsRefreshing(true);
     fetchPayments(true);
     triggerSync();
-  }, [fetchPayments, triggerSync]);
+    refreshLedger();
+  }, [fetchPayments, triggerSync, refreshLedger]);
 
   const filtered = useMemo(() => {
     let list = payments;
@@ -150,13 +155,16 @@ export default function PaymentsScreen() {
     return list;
   }, [payments, statusFilter, dateFilter]);
 
-  // Summary stats
+  // Summary stats from payment rows
   const totalPaid = payments
     .filter((p) => p.payment_status === 'completed')
     .reduce((s, p) => s + (p.amount ?? 0), 0);
   const totalPending = payments
     .filter((p) => p.payment_status === 'pending' || p.payment_status === 'processing')
     .reduce((s, p) => s + (p.amount ?? 0), 0);
+
+  // Available balance from live ledger (supersedes local totalPaid calculation)
+  const availableBalance = ledgerSummary?.balance ?? 0;
 
   if (isLoading) {
     return (
@@ -193,15 +201,21 @@ export default function PaymentsScreen() {
             {/* Summary cards */}
             <View style={styles.summaryRow}>
               <View style={[styles.summaryCard, { backgroundColor: C.black, flex: 1 }]}>
-                <Text style={styles.summaryLabel}>TOTAL PAID</Text>
+                <Text style={styles.summaryLabel}>AVAILABLE BALANCE</Text>
                 <Text style={[styles.summaryValue, { color: C.white }]}>
-                  {formatCurrency(totalPaid)}
+                  {formatCurrency(availableBalance)}
+                </Text>
+                <Text style={[styles.summarySubLabel, { color: C.textMuted }]}>
+                  paid out: {formatCurrency(totalPaid)}
                 </Text>
               </View>
               <View style={[styles.summaryCard, { backgroundColor: C.amberBg, flex: 1 }]}>
                 <Text style={[styles.summaryLabel, { color: C.amberText }]}>PENDING</Text>
                 <Text style={[styles.summaryValue, { color: C.amberText }]}>
                   {formatCurrency(totalPending)}
+                </Text>
+                <Text style={[styles.summarySubLabel, { color: C.amberText }]}>
+                  awaiting disbursement
                 </Text>
               </View>
             </View>
@@ -296,6 +310,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   summaryValue: { fontSize: T['4xl'], fontWeight: T.extrabold },
+  summarySubLabel: { fontSize: T.xs, marginTop: 4, letterSpacing: 0.3 },
 
   chipRow: {
     flexDirection: 'row',

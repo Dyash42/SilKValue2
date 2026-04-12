@@ -37,6 +37,21 @@ const SYNCED_TABLES = [
   'payments',
 ] as const;
 
+/**
+ * Tables that have a `deleted_at` column for soft-delete.
+ * Tables NOT in this set are queried WITHOUT a deleted_at filter —
+ * they use hard-delete or no-delete semantics.
+ *
+ * Check your Supabase schema before adding a table here.
+ * Currently confirmed: profiles, clusters, routes have deleted_at.
+ * reelers, route_stops, collection_tickets, payments do NOT.
+ */
+const TABLES_WITH_SOFT_DELETE = new Set<SyncedTable>([
+  'profiles',
+  'clusters',
+  'routes',
+]);
+
 type SyncedTable = (typeof SYNCED_TABLES)[number];
 
 // ---------------------------------------------------------------------------
@@ -233,6 +248,8 @@ async function pullTable(
 ): Promise<TableChanges> {
   const mapper = TABLE_MAPPERS[tableName];
 
+  const hasSoftDelete = TABLES_WITH_SOFT_DELETE.has(tableName);
+
   // ------ live rows -------------------------------------------------------
   let liveQuery = supabase
     .from(tableName)
@@ -240,10 +257,18 @@ async function pullTable(
     .order('updated_at', { ascending: true })
     .limit(batchSize);
 
-  if (since) {
-    liveQuery = liveQuery.gt('updated_at', since).is('deleted_at', null);
+  if (hasSoftDelete) {
+    // Table has deleted_at — exclude soft-deleted rows
+    if (since) {
+      liveQuery = liveQuery.gt('updated_at', since).is('deleted_at', null);
+    } else {
+      liveQuery = liveQuery.is('deleted_at', null);
+    }
   } else {
-    liveQuery = liveQuery.is('deleted_at', null);
+    // Table has no deleted_at — just filter by updated_at if incremental
+    if (since) {
+      liveQuery = liveQuery.gt('updated_at', since);
+    }
   }
 
   const { data: liveRows, error: liveError } = await liveQuery;
@@ -266,40 +291,44 @@ async function pullTable(
     mapper(r as Record<string, unknown>),
   );
 
-  // ------ deleted rows ----------------------------------------------------
-  let deletedQuery = supabase
-    .from(tableName)
-    .select('id')
-    .not('deleted_at', 'is', null)
-    .limit(batchSize);
+  // ------ deleted rows (only for soft-delete tables) ----------------------
+  const deleted: string[] = [];
 
-  if (since) {
-    deletedQuery = deletedQuery.gt('deleted_at', since);
-  }
+  if (hasSoftDelete) {
+    let deletedQuery = supabase
+      .from(tableName)
+      .select('id')
+      .not('deleted_at', 'is', null)
+      .limit(batchSize);
 
-  const { data: deletedRows, error: deletedError } = await deletedQuery;
-
-  if (deletedError) {
-    if (
-      deletedError.code === 'PGRST301' ||
-      deletedError.code === '42501' ||
-      (deletedError as { status?: number }).status === 401 ||
-      (deletedError as { status?: number }).status === 403
-    ) {
-      console.warn(
-        `[pullChanges] RLS/auth error fetching deleted rows on ${tableName}:`,
-        deletedError.message,
-      );
-      return { created: [], updated, deleted: [] };
+    if (since) {
+      deletedQuery = deletedQuery.gt('deleted_at', since);
     }
-    throw new Error(
-      `[pullChanges] Failed to fetch deleted rows for ${tableName}: ${deletedError.message}`,
+
+    const { data: deletedRows, error: deletedError } = await deletedQuery;
+
+    if (deletedError) {
+      if (
+        deletedError.code === 'PGRST301' ||
+        deletedError.code === '42501' ||
+        (deletedError as { status?: number }).status === 401 ||
+        (deletedError as { status?: number }).status === 403
+      ) {
+        console.warn(
+          `[pullChanges] RLS/auth error fetching deleted rows on ${tableName}:`,
+          deletedError.message,
+        );
+        return { created: [], updated, deleted: [] };
+      }
+      throw new Error(
+        `[pullChanges] Failed to fetch deleted rows for ${tableName}: ${deletedError.message}`,
+      );
+    }
+
+    deleted.push(
+      ...(deletedRows ?? []).map((r) => (r as { id: string }).id),
     );
   }
-
-  const deleted: string[] = (deletedRows ?? []).map(
-    (r) => (r as { id: string }).id,
-  );
 
   return { created: [], updated, deleted };
 }

@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/hooks/useAuth';
 import { useSync } from '@/hooks/useSync';
 import { useCollectionTicket } from '@/hooks/useCollectionTicket';
+import { useLedger } from '@/hooks/useLedger';
 import SyncStatusBar from '@/components/shared/SyncStatusBar';
 import EmptyState from '@/components/shared/EmptyState';
 import CollectionTicketModel from '@/models/CollectionTicketModel';
@@ -117,13 +118,17 @@ export default function ReelerDashboard() {
   const { isSyncing, pendingCount, error, triggerSync } = useSync();
   const { pendingTickets } = useCollectionTicket();
 
+  // Live balance from Supabase ledger — primary source of truth for earnings
+  const { summary: ledgerSummary, refresh: refreshLedger } = useLedger(profile?.id ?? null);
+
   const name = profile?.full_name ?? 'Reeler';
   const kycStatus = (profile as any)?.kyc_status ?? null;
   const kycBanner = kycBannerText(kycStatus);
 
   const onRefresh = useCallback(async () => {
     await triggerSync();
-  }, [triggerSync]);
+    refreshLedger();
+  }, [triggerSync, refreshLedger]);
 
   const now = new Date();
   const thisMonthEarnings = pendingTickets.reduce((sum, t) => {
@@ -132,10 +137,14 @@ export default function ReelerDashboard() {
       ? sum + t.totalAmount
       : sum;
   }, 0);
+
+  // Pending = tickets not yet paid (local WatermelonDB — reflects unsynced work)
   const pendingPayments = pendingTickets
     .filter((t) => t.status !== 'paid')
     .reduce((s, t) => s + t.totalAmount, 0);
-  const totalEarnings = pendingTickets.reduce((s, t) => s + t.totalAmount, 0);
+
+  // Total earnings: prefer live ledger balance, fall back to local ticket sum
+  const totalEarnings = ledgerSummary?.totalCredited ?? pendingTickets.reduce((s, t) => s + t.totalAmount, 0);
 
   const recentTickets = pendingTickets.slice(0, 5);
 
@@ -164,13 +173,12 @@ export default function ReelerDashboard() {
         </TouchableOpacity>
       ) : null}
 
-      {/* Earnings card */}
+      {/* Earnings card — live balance from ledger */}
       <View style={styles.section}>
         <EarningCard
-          totalEarnings={totalEarnings}
+          total={totalEarnings}
           thisMonth={thisMonthEarnings}
           pending={pendingPayments}
-          total={totalEarnings}
         />
       </View>
 

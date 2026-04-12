@@ -1,15 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, TextInput, StyleSheet } from 'react-native';
+import { DT } from '@/constants/designTokens';
 
-// Design system colors
-const BLACK = '#000000';
-const WHITE = '#FFFFFF';
-const BORDER = '#E5E5E5';
-const SURFACE_ALT = '#F5F5F5';
-const TEXT_PRIMARY = '#111111';
-const TEXT_SECONDARY = '#666666';
-const TEXT_MUTED = '#999999';
-const RED = '#EF4444';
+const { C, T, S, R } = { C: DT.colors, T: DT.type, S: DT.space, R: DT.radius };
 
 export type QCDecision = 'accepted' | 'partial_rejection' | 'rejected';
 
@@ -72,13 +65,17 @@ export default function QCDecisionPanel({ onDecision, isLoading = false }: QCDec
       </View>
 
       {/* Notes */}
-      <Text style={styles.notesLabel}>NOTES (OPTIONAL)</Text>
+      <Text style={styles.notesLabel}>
+        {selected === 'partial_rejection' || selected === 'rejected'
+          ? 'NOTES (REQUIRED)'
+          : 'NOTES (OPTIONAL)'}
+      </Text>
       <TextInput
         style={styles.notesInput}
         value={notes}
         onChangeText={setNotes}
         placeholder="Add inspection notes…"
-        placeholderTextColor={TEXT_MUTED}
+        placeholderTextColor={C.textMuted}
         multiline
         numberOfLines={3}
         editable={!isLoading}
@@ -101,101 +98,38 @@ export default function QCDecisionPanel({ onDecision, isLoading = false }: QCDec
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
-    backgroundColor: WHITE,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: BORDER,
+    padding: S.base, backgroundColor: C.white,
+    borderRadius: R.md, borderWidth: 1, borderColor: C.border,
   },
   sectionLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: TEXT_SECONDARY,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginBottom: 12,
+    fontSize: T.sm, fontWeight: T.semibold, color: C.textSecondary,
+    letterSpacing: 1, textTransform: 'uppercase', marginBottom: S.md,
   },
-  buttonsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 16,
-  },
+  buttonsRow: { flexDirection: 'row', gap: 10, marginBottom: S.base },
   decisionBtn: {
-    flex: 1,
-    paddingVertical: 11,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: BORDER,
-    backgroundColor: SURFACE_ALT,
-    alignItems: 'center',
+    flex: 1, paddingVertical: 11, borderRadius: R.md,
+    borderWidth: 1, borderColor: C.border, backgroundColor: C.surfaceAlt, alignItems: 'center',
   },
-  btnPassActive: {
-    backgroundColor: BLACK,
-    borderColor: BLACK,
-  },
-  btnHoldActive: {
-    backgroundColor: SURFACE_ALT,
-    borderColor: '#CCCCCC',
-  },
-  btnFailActive: {
-    backgroundColor: WHITE,
-    borderColor: RED,
-  },
-  btnFailInactive: {
-    borderColor: RED,
-    backgroundColor: WHITE,
-  },
-  decisionBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: TEXT_PRIMARY,
-    letterSpacing: 0.5,
-  },
-  textPassActive: {
-    color: WHITE,
-  },
-  textHoldActive: {
-    color: TEXT_PRIMARY,
-  },
-  textFailActive: {
-    color: RED,
-  },
-  textFailInactive: {
-    color: RED,
-  },
+  btnPassActive: { backgroundColor: C.black, borderColor: C.black },
+  btnHoldActive: { backgroundColor: C.surfaceAlt, borderColor: C.borderStrong },
+  btnFailActive: { backgroundColor: C.white, borderColor: C.red },
+  btnFailInactive: { borderColor: C.red, backgroundColor: C.white },
+  decisionBtnText: { fontSize: T.base, fontWeight: T.bold, color: C.textPrimary, letterSpacing: 0.5 },
+  textPassActive: { color: C.white },
+  textHoldActive: { color: C.textPrimary },
+  textFailActive: { color: C.red },
+  textFailInactive: { color: C.red },
   notesLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: TEXT_SECONDARY,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginBottom: 6,
+    fontSize: T.sm, fontWeight: T.semibold, color: C.textSecondary,
+    letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6,
   },
   notesInput: {
-    backgroundColor: SURFACE_ALT,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: BORDER,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: TEXT_PRIMARY,
-    minHeight: 76,
-    textAlignVertical: 'top',
-    marginBottom: 16,
+    backgroundColor: C.surfaceAlt, borderRadius: R.sm,
+    borderWidth: 1, borderColor: C.border,
+    paddingHorizontal: S.md, paddingVertical: 10,
+    fontSize: T.md, color: C.textPrimary, minHeight: 76, textAlignVertical: 'top', marginBottom: S.base,
   },
-  submitBtn: {
-    backgroundColor: BLACK,
-    borderRadius: 8,
-    paddingVertical: 13,
-    alignItems: 'center',
-  },
-  submitBtnDisabled: {
-    opacity: 0.4,
-  },
-  submitBtnText: {
-    color: WHITE,
-    fontSize: 15,
-    fontWeight: '600',
-  },
+  submitBtn: { backgroundColor: C.black, borderRadius: R.md, paddingVertical: 13, alignItems: 'center' },
+  submitBtnDisabled: { opacity: 0.4 },
+  submitBtnText: { color: C.white, fontSize: T.lg, fontWeight: T.semibold },
 });

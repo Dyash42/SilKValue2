@@ -6,12 +6,15 @@ import {
   TouchableOpacity,
   StyleSheet,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useCollectionTicket } from '@/hooks/useCollectionTicket';
 import { useSync } from '@/hooks/useSync';
+import { useLedger } from '@/hooks/useLedger';
+import { useAuthStore } from '@/stores/auth.store';
 import SyncStatusBar from '@/components/shared/SyncStatusBar';
 import { formatCurrency } from '@/utils/format';
 import { DT } from '@/constants/designTokens';
@@ -44,6 +47,13 @@ export default function EarningsScreen() {
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
   const { pendingTickets } = useCollectionTicket();
   const { isSyncing, pendingCount, error: syncError, triggerSync } = useSync();
+  const { profile } = useAuthStore();
+  const {
+    summary: ledgerSummary,
+    isLoading: ledgerLoading,
+    error: ledgerError,
+    refresh: refreshLedger,
+  } = useLedger(profile?.id ?? null);
 
   const monthTickets = useMemo(
     () => pendingTickets.filter((t) => {
@@ -84,6 +94,11 @@ export default function EarningsScreen() {
 
   const isCurrentMonth = selectedMonth === now.getMonth() && selectedYear === now.getFullYear();
 
+  const handleRefresh = useCallback(async () => {
+    await triggerSync();
+    refreshLedger();
+  }, [triggerSync, refreshLedger]);
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
@@ -98,9 +113,45 @@ export default function EarningsScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={isSyncing} onRefresh={triggerSync} tintColor={C.black} />}
+        refreshControl={<RefreshControl refreshing={isSyncing} onRefresh={handleRefresh} tintColor={C.black} />}
         contentContainerStyle={styles.scrollContent}
       >
+        {/* ── Live Ledger Balance ── */}
+        <View style={styles.ledgerCard}>
+          <View style={styles.ledgerCardRow}>
+            <View>
+              <Text style={styles.ledgerLabel}>CONFIRMED BALANCE</Text>
+              {ledgerLoading ? (
+                <ActivityIndicator size="small" color={C.white} style={{ marginTop: 4 }} />
+              ) : (
+                <Text style={styles.ledgerBalance}>
+                  {formatCurrency(ledgerSummary?.balance ?? 0)}
+                </Text>
+              )}
+              <Text style={styles.ledgerSub}>
+                Credited: {formatCurrency(ledgerSummary?.totalCredited ?? 0)}
+              </Text>
+            </View>
+            <View style={styles.ledgerRight}>
+              <View style={styles.ledgerStatBox}>
+                <Text style={styles.ledgerStatLabel}>ENTRIES</Text>
+                <Text style={styles.ledgerStatVal}>{ledgerSummary?.entryCount ?? 0}</Text>
+              </View>
+              <View style={styles.ledgerStatBox}>
+                <Text style={styles.ledgerStatLabel}>DEBITED</Text>
+                <Text style={styles.ledgerStatVal}>
+                  {formatCurrency(ledgerSummary?.totalDebited ?? 0)}
+                </Text>
+              </View>
+            </View>
+          </View>
+          {ledgerError ? (
+            <TouchableOpacity onPress={refreshLedger} style={styles.ledgerErrorRow}>
+              <Ionicons name="alert-circle-outline" size={13} color={C.amberText} />
+              <Text style={styles.ledgerErrorText}>Could not sync balance — tap to retry</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
         {/* Month selector */}
         <View style={styles.monthSelector}>
           <TouchableOpacity onPress={prevMonth} style={styles.monthBtn}>
@@ -169,6 +220,26 @@ export default function EarningsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   scrollContent: { paddingBottom: 40 },
+
+  // ── Live ledger balance card ───────────────────────────────────────────────
+  ledgerCard: {
+    margin: S.base, backgroundColor: C.black, borderRadius: R.xl, padding: S.lg,
+  },
+  ledgerCardRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
+  ledgerLabel: { fontSize: T.xs, fontWeight: T.bold, color: C.textMuted, letterSpacing: 1, marginBottom: S.xs },
+  ledgerBalance: { fontSize: T['4xl'], fontWeight: T.extrabold, color: C.white, marginBottom: 4 },
+  ledgerSub: { fontSize: T.base, color: C.textMuted },
+  ledgerRight: { gap: S.sm, alignItems: 'flex-end' },
+  ledgerStatBox: { alignItems: 'flex-end' },
+  ledgerStatLabel: { fontSize: T.xs, color: C.textMuted, letterSpacing: 0.8, marginBottom: 2 },
+  ledgerStatVal: { fontSize: T.lg, fontWeight: T.bold, color: C.white },
+  ledgerErrorRow: {
+    flexDirection: 'row', alignItems: 'center', gap: S.xs,
+    marginTop: S.sm, backgroundColor: C.amberBg, borderRadius: R.sm,
+    paddingHorizontal: S.sm, paddingVertical: 6,
+  },
+  ledgerErrorText: { fontSize: T.xs, color: C.amberText, flex: 1 },
+
   header: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: S.base, paddingVertical: S.md,

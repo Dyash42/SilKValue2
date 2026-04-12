@@ -4,13 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 import Badge from '@/components/shared/Badge';
 import type { BadgeVariant } from '@/components/shared/Badge';
 import type { GateEntryRow } from '@/types';
+import { DT } from '@/constants/designTokens';
 
-// Design system colors
-const WHITE = '#FFFFFF';
-const BORDER = '#E5E5E5';
-const SURFACE_ALT = '#F5F5F5';
-const TEXT_PRIMARY = '#111111';
-const TEXT_SECONDARY = '#666666';
+const { C, T, S, R } = { C: DT.colors, T: DT.type, S: DT.space, R: DT.radius };
 
 interface GateEntryItemProps {
   entry: GateEntryRow;
@@ -24,11 +20,14 @@ type QcStatus = GateEntryRow['qc_status'];
 
 function getStatusBadge(qcStatus: QcStatus): { label: string; variant: BadgeVariant } {
   switch (qcStatus) {
-    case 'rejected':
-      return { label: 'LATE', variant: 'black' };
     case 'accepted':
-      return { label: 'CHECKED IN', variant: 'grey' };
+      return { label: 'PASSED', variant: 'success' };
+    case 'rejected':
+      return { label: 'REJECTED', variant: 'error' };
     case 'partial_rejection':
+      return { label: 'PARTIAL', variant: 'warning' };
+    case 'pending':
+      return { label: 'PENDING QC', variant: 'warning' };
     default:
       return { label: 'EXPECTED', variant: 'outline' };
   }
@@ -37,43 +36,42 @@ function getStatusBadge(qcStatus: QcStatus): { label: string; variant: BadgeVari
 function getIcon(qcStatus: QcStatus): React.ReactNode {
   switch (qcStatus) {
     case 'accepted':
-      return <Ionicons name="checkmark" size={22} color={TEXT_PRIMARY} />;
+      return <Ionicons name="checkmark-circle" size={22} color={C.green} />;
     case 'rejected':
-      return <Ionicons name="time-outline" size={22} color={TEXT_PRIMARY} />;
+      return <Ionicons name="close-circle" size={22} color={C.red} />;
+    case 'pending':
+      return <Ionicons name="time-outline" size={22} color={C.amber} />;
     default:
-      return <Ionicons name="car-outline" size={22} color={TEXT_PRIMARY} />;
+      return <Ionicons name="car-outline" size={22} color={C.textPrimary} />;
   }
 }
 
 export default function GateEntryItem({
-  entry,
-  vehicleId,
-  companyName,
-  eta,
-  onPress,
+  entry, vehicleId, companyName, eta, onPress,
 }: GateEntryItemProps) {
   const { label, variant } = getStatusBadge(entry.qc_status);
+  const weight = entry.gate_net_weight_kg ?? 0;
+  const variancePct = entry.variance_percent;
+  const time = entry.check_in_timestamp
+    ? new Date(entry.check_in_timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+    : eta;
 
   return (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={onPress}
-      activeOpacity={0.85}
-      disabled={!onPress}
-    >
-      <View style={styles.iconBox}>
-        {getIcon(entry.qc_status)}
-      </View>
-
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85} disabled={!onPress}>
+      <View style={styles.iconBox}>{getIcon(entry.qc_status)}</View>
       <View style={styles.infoBlock}>
         <Text style={styles.vehicleId} numberOfLines={1}>
           {vehicleId ?? entry.id.slice(0, 8).toUpperCase()}
         </Text>
         <Text style={styles.meta} numberOfLines={1}>
-          {[companyName, eta ? `ETA ${eta}` : null].filter(Boolean).join(' · ')}
+          {[
+            weight > 0 ? `${weight.toFixed(1)} kg` : null,
+            variancePct != null ? `${variancePct > 0 ? '+' : ''}${variancePct.toFixed(1)}%` : null,
+            time,
+            companyName,
+          ].filter(Boolean).join(' · ')}
         </Text>
       </View>
-
       <Badge label={label} variant={variant} />
     </TouchableOpacity>
   );
@@ -81,36 +79,14 @@ export default function GateEntryItem({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: WHITE,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: BORDER,
-    padding: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
+    backgroundColor: C.white, borderRadius: R.md, borderWidth: 1, borderColor: C.border,
+    padding: S.md, flexDirection: 'row', alignItems: 'center', marginBottom: S.sm,
   },
   iconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 6,
-    backgroundColor: SURFACE_ALT,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
+    width: 44, height: 44, borderRadius: R.sm,
+    backgroundColor: C.surfaceAlt, alignItems: 'center', justifyContent: 'center', marginRight: S.md,
   },
-  infoBlock: {
-    flex: 1,
-    marginRight: 8,
-  },
-  vehicleId: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: TEXT_PRIMARY,
-    marginBottom: 2,
-  },
-  meta: {
-    fontSize: 12,
-    color: TEXT_SECONDARY,
-  },
+  infoBlock: { flex: 1, marginRight: S.sm },
+  vehicleId: { fontSize: T.lg, fontWeight: T.bold, color: C.textPrimary, marginBottom: 2 },
+  meta: { fontSize: T.base, color: C.textSecondary },
 });

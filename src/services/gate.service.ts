@@ -1,5 +1,9 @@
 import { supabase } from '@/lib/supabase/client';
 import type { GateEntryRow, GateQcStatus, OverrideStatus } from '@/types';
+import {
+  creditGateClearance,
+  resolveReelerFromGateEntry,
+} from '@/services/ledger.service';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -193,6 +197,54 @@ export async function approveOverride(
   }
 
   return data;
+}
+
+// ---------------------------------------------------------------------------
+// clearToLedger
+// ---------------------------------------------------------------------------
+
+/**
+ * After QC acceptance, credits the reeler's ledger for the accepted weight.
+ *
+ * Resolves the reeler_id by following:
+ *   gate_entries.route_id → route_stops[0].reeler_id
+ *
+ * If the route is 'unknown' or the reeler cannot be resolved, the function
+ * logs a warning and returns without throwing — ledger credit is best-effort
+ * at this stage (Phase 3).
+ *
+ * @param entryId         gate_entries.id
+ * @param finalWeightKg   Final accepted weight after deductions
+ * @param pricePerKgInr   Grade-A unit price (or pass 0 to use the default 480)
+ * @param operatorId      Profile ID of the QC operator
+ */
+export async function clearToLedger(
+  entryId: string,
+  finalWeightKg: number,
+  pricePerKgInr: number,
+  operatorId: string,
+): Promise<void> {
+  try {
+    const reelerId = await resolveReelerFromGateEntry(entryId);
+    if (!reelerId) {
+      console.warn(`clearToLedger: cannot resolve reeler for entry ${entryId} — ledger credit skipped`);
+      return;
+    }
+
+    const unitPrice = pricePerKgInr > 0 ? pricePerKgInr : 480; // fallback to Grade-A demo price
+    const amountInr = parseFloat((finalWeightKg * unitPrice).toFixed(2));
+
+    await creditGateClearance({
+      reelerId,
+      entryId,
+      finalWeightKg,
+      amountInr,
+      operatorId,
+    });
+  } catch (err) {
+    // Non-fatal: gate workflow continues even if ledger credit fails
+    console.warn('clearToLedger error:', err instanceof Error ? err.message : err);
+  }
 }
 
 // ---------------------------------------------------------------------------
